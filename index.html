@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    <title>King Game</title>
+    <style>
+        body {
+            /* font-family: Arial, sans-serif; */
+            font-family: 'Noto Sans JP', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: whitesmoke;
+        }
+        #app {
+        }
+        #app .inner{
+            max-width: 95vw;
+            margin: auto;
+        } 
+
+        .input-modal{
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+        .player-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .player-input input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .player-input button {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        .add-button, .start-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            margin-top: 10px;
+            cursor: pointer;
+
+            background-color: #3498db;
+            color: #fff;
+        }
+        .start-button {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+        /* ---------------------------------------- */
+        #gameArea {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+            width: 95vw;
+            height: 90vh;
+
+            max-width: 1150px;
+            max-height: 750px;
+            margin: auto;
+        }
+
+        #gameArea .grid-item{
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+            border-color: grey;
+            border-width: 5px;
+            border-style: solid;
+
+            transition: all .4s;
+        }
+        .main-area {
+            /* grid-column: 2 / 3;
+            grid-row: 1 / 2; */
+            padding: 20px;
+
+            background-color: DarkSeaGreen;
+        }
+        /* .player-1 { grid-column: 1 / 2; grid-row: 2 / 3; }
+        .player-2 { grid-column: 2 / 3; grid-row: 2 / 3; }
+        .player-3 { grid-column: 3 / 4; grid-row: 2 / 3; }
+        .player-4 { grid-column: 1 / 2; grid-row: 1 / 2; }
+        .player-5 { grid-column: 3 / 4; grid-row: 1 / 2; } */
+
+        #gameArea .player h3{
+            /* text-align: ce; */
+            margin: 0;
+            line-height: 1;
+        }
+
+        #gameArea .player .player-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* ----------------------------------------------------- */
+
+        #gameArea  .gameCard-container{
+            display: flex;
+            gap: 5px;
+
+            flex-wrap: wrap;
+
+            max-width: 100%;
+        }
+
+        #gameArea .gameCard{
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 25px;
+            aspect-ratio: 5/6;
+
+            border: 1px solid black;
+        }
+        /* ----------------------------------------------------- */
+
+        #gameArea .player .player-content .babies-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 10px;
+        }
+
+        #gameArea .player .player-content .baby-item {
+            position: relative;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            border-width: 2.5px;
+            border-style: dashed;
+            aspect-ratio: 1/1;
+        }
+
+        #gameArea .player .player-content .baby-item .baby-img-container{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border-radius: 50%;
+            height: 80px;
+            max-height: 85%;
+            aspect-ratio: 4/5;
+        }
+
+        #gameArea .player .player-content .baby-item .babbaby-grown-img-containeriner{
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        #gameArea .player .player-content .baby-item img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #gameArea .player .player-content .baby-item span {
+            position: absolute;
+            bottom: 0;
+            right: 3px;
+
+            font-size: 90%;
+        }
+
+        /* ----------------------------------------------------- */
+
+        #gameArea .player .player-info {
+            /* display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; */
+        }
+
+        #gameArea .player .player-info .player-name {
+            text-align: center;
+        }
+
+        #gameArea .player .player-info .player-img {
+            width: 100%;
+            aspect-ratio: 1;
+            overflow: hidden;
+            border-radius: 50%;
+            margin: 15px auto;
+        }
+
+        #gameArea .player .player-info .king-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #gameArea .player .player-info .player-food {
+            display: flex;
+            /* flex-direction: column; */
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            text-align: center;
+
+            font-size: 90%;
+        }
+
+        #gameArea .player .player-info .player-food img{
+            display: block;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        #gameArea .player .player-info .gameCard-container{
+            margin: 15px auto;
+        }
+
+        #gameArea .player .player-info .gameCard-container .gameCard{
+            width: 50px;
+            margin-left: -48px;
+        }
+
+        #gameArea .player .player-info .gameCard-container .gameCard:first-child{
+            margin-left: unset !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="inner">
+
+            <div v-if="currentPage === 'before'">
+                <div class="input-modal">
+                    <h2>プレイヤー名を入力してください</h2>
+                    <div v-for="(player, index) in players" :key="index" class="player-input">
+                        <input type="text" v-model="player.name" placeholder="名前を入力">
+                        <button @click="removePlayer(index)">x</button>
+                    </div>
+                    <button v-if="players.length < 5" @click="addPlayer" class="add-button">+</button>
+                    <button v-if="readyToPlay" @click="goToGamePage" class="start-button">{{this.players.length}}人で遊ぶ</button>
+                </div>
+            </div>
+
+            <div v-if="currentPage === 'game'">
+                <div id="gameArea">
+
+                    <div class="grid-item main-area">
+                        <h2>メインエリア</h2>
+                        <div class="gameCard-container">
+                            <template v-for="(card, index) in drawPile" :key="index">
+                                <div class="gameCard" :style="getBackgroundColor(card)">
+                                    <span>{{card.id}}</span>
+                                </div>
+                            </template>
+                            
+                        </div>
+                        <div>残り{{drawPile.length}}枚</div>
+                        <button v-if="gameStatus == 'waiting'" @click="startGame()">shuffle</button>
+                        <button v-if="gameStatus == 'shuffled'" @click="distributeCards()">destributing</button>
+                    </div>
+
+                    <div v-for="(player, index) in players" :key="index" :class="`grid-item player player-${index + 1}`" :style="[ { borderColor: player.color }, index !== currentPlayerIndex ? { backgroundColor: 'dimGray', color: '#fff', opacity: '.75' } : {} ]">
+                        <!-- Player content -->
+                        <div class="player-content">
+
+                            <div class="babies-info">
+                                <template v-for="(baby, babyIndex) in player.babies" :key="babyIndex">
+                                    <div class="baby-item" :style="{borderColor: player.color}"  @click="feedBaby(index, baby)">
+                                        <div :class="getClass(baby)"  :style="baby.foodArray.length == 2 ? '' : 'opacity: .5'">
+                                            <img :src="baby.foodArray.length == 2 ? baby.kingImgSrc : baby.babyImgSrc" alt="Baby Image">
+                                        </div>
+                                        <span>x{{baby.foodArray.length}}</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="player-info">
+                                <div class="player-name">
+                                    <h3>{{ player.name }}</h3>
+                                </div>
+                                <div class="player-img">
+                                    <img :src="player.king.imgSrc" alt="King Image" class="king-image">
+                                </div>
+                                <div class="player-food">
+                                    <div v-if="food[player.king.foodRequirements[0]]">
+                                        <img :src="food[player.king.foodRequirements[0]].imgSrc" alt="">{{ food[player.king.foodRequirements[0]].name }}
+                                    </div>
+                                    <div v-if="food[player.king.foodRequirements[1]]">
+                                        <img :src="food[player.king.foodRequirements[1]].imgSrc" alt="">{{ food[player.king.foodRequirements[1]].name }}
+                                    </div>
+                                </div>
+                                <div class="gameCard-container">
+                                    <div v-for="card in playerHands(player.name)" :key="card.id" class="gameCard" :style="getBackgroundColor(card)">
+                                        <span>{{ card.id }}</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+                        
+                        <button v-if="index === currentPlayerIndex" @click="nextPlayer">ターン終了</button>
+                    </div>
+                    
+                </div>
+                <!-- Game content goes here -->
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+    <script type="module">
+        // import { randomNames } from './name.js';
+        const app = Vue.createApp({
+            data() {
+                return {
+                    developingMode: true,
+                    defaultNumber: 5,
+
+                    currentPage: 'before',
+                    gameStatus: 'waiting',
+
+                    players: [],
+                    currentPlayerIndex: 0,
+                    
+                    teamColors: ['#DC143C', '#0047AB', '#228B22', '#FFD700', '#1C1C1C'],
+                    cardsPerPlayer : 6,
+
+
+                    randomNames:[
+                        'あきなす',
+                        'アケオメ',
+                        'あすなろ',
+                        'あと１ぽん',
+                        'あなご',
+                        'アニ',
+                        'あろあろ',
+                        'あんぱん',
+                        'イカフライ',
+                        'いただき',
+                        'いやいや',
+                        'うぃー',
+                        'ウエルカム',
+                        'ウキャキャ',
+                        'うすくち',
+                        'うっとり',
+                        'えっへん',
+                        'えぴ',
+                        'おおあたり',
+                        'おおとろ',
+                        'おかん',
+                        'おさきです',
+                        'おならプー',
+                        'かいがん',
+                        'カクテキ',
+                        'カターカタ',
+                        'かちょう',
+                        'ガニ',
+                        'かまくら',
+                        'からすみ',
+                        'からてか',
+                        'かるしうむ',
+                        'キャメロン',
+                        'グェ',
+                        'くっちゃね',
+                        'ぐらま～',
+                        'ぐらんぱ',
+                        'くるとん',
+                        'くろおび',
+                        'ゲジゲジ',
+                        'ごっつあん',
+                        'ことこと',
+                        'ごはん',
+                        'サラミ',
+                        'さんかく',
+                        'サンチュ',
+                        'シェフ',
+                        'しおしお',
+                        'しこみ',
+                        'しめさば',
+                        'じゃんぼ',
+                        'しらたき',
+                        'すなぎも',
+                        'スベスベ',
+                        'センス',
+                        'そばゆ',
+                        'そら',
+                        'っょぃゃっ',
+                        'つんつん',
+                        'ツンドラ',
+                        'ていおう',
+                        'デスポッド',
+                        'ですます',
+                        'てっかまき',
+                        'てばさき',
+                        'てふてふ',
+                        'テミヤゲ',
+                        'でろでろ',
+                        'とんかつ',
+                        'とんこつ',
+                        'トンズラ',
+                        'ナイスガイ',
+                        'なにがし',
+                        'ナポリタン',
+                        'ニイハオ',
+                        'にとうへい',
+                        'にんにくん',
+                        'ねるねる',
+                        'ハード',
+                        'はかばか',
+                        'ハロー',
+                        'はんぺん',
+                        'ヒエン',
+                        'ピカピカ',
+                        'ビギナー',
+                        'ヒットミー',
+                        'ぶぅぅぅん',
+                        'ふぉぉぉぉ',
+                        'へっぽこ',
+                        'ポ',
+                        'ぽりごん',
+                        'ポリスマン',
+                        'ぼるしち',
+                        'ぼんじり',
+                        'まえうしろ',
+                        'マエストロ',
+                        'ましかく',
+                        'まじかる',
+                        'マゼラン',
+                        'マタドール',
+                        'マヨラー',
+                        'まんまる',
+                        'まんもす',
+                        'メロリン',
+                        'モケモケ',
+                        'もずくす',
+                        'もみあげ',
+                        'もろへいや',
+                        'ヤヤ',
+                        'ゆたんぽ',
+                        'ゆでたまご',
+                        'よろしく',
+                        'ラスいち',
+                        'ラッキー',
+                        'りもこん',
+                    ],
+
+                    food:[
+                        {name:'果物',imgSrc: './assets/image/food-1.jpg'},
+                        {name:'魚',imgSrc: './assets/image/food-2.jpg'},
+                        {name:'ねずみ',imgSrc: './assets/image/food-3.jpg'},
+                        {name:'いか',imgSrc: './assets/image/food-4.jpg'},
+                        {name:'虫',imgSrc: './assets/image/food-5.jpg'},
+                    ],
+
+                    kings:[
+                        {name:'クマ', imgSrc:'./assets/image/bear.jpg', foodRequirements: [0,1]},
+                        {name:'オオワシ', imgSrc:'./assets/image/eagle.jpg', foodRequirements: [1,2]},
+                        {name:'シャチ', imgSrc:'./assets/image/orca.jpg', foodRequirements: [1,3]},
+                        {name:'キタキツネ', imgSrc:'./assets/image/fox.jpg', foodRequirements: [0,4]},
+                        {name:'タンチョウヅル', imgSrc:'./assets/image/crane.jpg', foodRequirements: [1,4]},
+                    ],
+
+                    deck:[],
+
+                };
+            },
+            computed: {
+                readyToPlay() {
+                    const namePattern = /^[^\s!@#$%^&*(),.?":{}|<>]+$/;
+                    const uniquerandomNames = new Set(this.players.map(player => player.name.trim()));
+                    
+                    return this.players.length >= 2 &&
+                        this.players.length <= 5 &&
+                        uniquerandomNames.size === this.players.length &&
+                        this.players.every(player => 
+                            player.name.trim() !== '' && 
+                            namePattern.test(player.name)
+                        );
+                },
+
+                currentPlayer() {
+                    return this.players[this.currentPlayerIndex];
+                },
+
+                drawPile() {
+                    return this.deck.filter(card => card.location === 'drawPile');
+                },
+
+                trashPile() {
+                    return this.deck.filter(card => card.location === 'trash');
+                },
+
+                playerHands() {
+                    return playerName => this.deck.filter(card => card.location === playerName);
+                },
+            },
+
+            methods: {
+                sleep(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                },
+                getRandomName() {
+                    let randomName;
+                    do {
+                        const randomIndex = Math.floor(Math.random() * this.randomNames.length);
+                        randomName = this.randomNames[randomIndex];
+                    } while (this.players.some(player => player.name === randomName));
+                    return randomName;
+                },
+                addPlayer() {
+                    const randomName = this.getRandomName();
+                    this.players.push({ name: randomName });
+                },
+                removePlayer(index) {
+                    this.players.splice(index, 1);
+                },
+                shuffleArray(array) {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                },
+                goToGamePage() {
+                    if (!this.readyToPlay) return;
+
+                    // Shuffle and assign colors
+                    this.gameStatus = 'waiting'
+                    this.shuffleArray(this.teamColors);
+                    this.shuffleArray(this.kings);
+                    this.players.forEach((player, index) => {
+                        player.color = this.teamColors[index];
+                        player.king = this.kings[index];
+
+                        player.babies = []
+
+                        // Generate baby image source
+                        const kingImgSrc = this.kings[index].imgSrc;
+                        const fileName = kingImgSrc.substring(kingImgSrc.lastIndexOf('/') + 1, kingImgSrc.lastIndexOf('.'));
+                        const fileExtension = kingImgSrc.substring(kingImgSrc.lastIndexOf('.'));
+                        const babyImgSrc = `./assets/image/${fileName}-baby${fileExtension}`;
+
+                        // Push the baby object 5 times
+                        for (let i = 0; i < 5; i++) {
+                            player.babies.push({
+                                kingImgSrc,
+                                babyImgSrc,
+                                isBlocked: false,
+                                foodArray: [],
+                            });
+                        }
+                    });
+
+                    // create the deck
+                    this.initializeDeck();
+
+
+
+                    // Reset the current player index
+                    this.currentPlayerIndex = 0;
+
+                    this.currentPage = 'game';
+                },
+
+                initializeDeck() {
+                    this.deck = []
+
+                    const types = [
+                        { type: 'food', count: 38 },
+                        { type: 'energy', count: 10 },
+                        { type: 'obstacle', count: 16 }
+                    ];
+
+                    let id = 1;
+
+                    types.forEach(({ type, count }) => {
+                        for (let i = 0; i < count; i++) {
+                        this.deck.push({
+                            id: id++,
+                            type: type,
+                            name: '', // Name to be added later
+                            location: 'drawPile', // Initial location
+                            description: '', // Optional: add more details about the card
+                        });
+                        }
+                    });
+                },
+                startGame(){
+                    this.gameStatus = 'shuggling'
+
+                    this.shuffleArray(this.deck)
+
+                    this.gameStatus = 'shuffled'
+                },
+                async distributeCards() {
+                    this.gameStatus = 'distributing'
+                    if (this.drawPile.length !== this.deck.length) return;
+
+                    for (let i = 0; i < this.cardsPerPlayer; i++) {
+                        for (let player of this.players) {
+                            const card = this.drawPile[0];
+                            if (card) {
+                                // console.log(`Distributing ${card.id} to ${player.name}`);
+                                card.location = player.name;
+                                await this.sleep(75); // Add delay if needed
+                            }
+                        }
+                    }
+
+                    this.gameStatus = 'distributed'
+                },
+                getRandomCardFromDeck() {
+                    const availableCards = this.drawPile;
+                    const randomIndex = Math.floor(Math.random() * availableCards.length);
+                    return availableCards[randomIndex];
+                },
+                nextPlayer() {
+                    // Move to the next player, wrapping around if necessary
+                    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+                },
+                feedBaby(index,baby){
+                    if(!this.currentPlayerIndex == index) return
+                    if(baby.foodArray.length == 2) return
+
+                    baby.foodArray.push(this.food[0])
+                },
+                getClass(baby) {
+                    let className = 'baby-img-container';
+                    if (baby.foodArray.length == 2) {
+                        className = 'baby-grown-img-container';
+                    }
+                    return className;
+                },
+                getBackgroundColor(card){
+                    let color
+
+                    switch(card.type){
+                        case  'food' : 
+                            color = 'HotPink';
+                            break;
+
+                        case  'energy' : 
+                            color = 'yellow';
+                            break;
+
+                        case  'obstacle' : 
+                            color = 'Chocolate';
+                            break;
+                    
+                        default :
+                            color = 'black';
+                            break;
+                    }
+
+                    return { backgroundColor: color };
+
+                },
+            },
+
+            async mounted(){
+                for (let i = 0; i < this.defaultNumber; i++) {
+                    this.addPlayer();
+                }
+
+                if(this.developingMode){
+
+                    this.goToGamePage()
+                    await this.sleep(500)
+
+                    this.startGame()
+                    await this.sleep(500)
+
+                    this.distributeCards()
+                    await this.sleep(500)
+                }
+            },
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
