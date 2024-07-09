@@ -62,9 +62,6 @@
                                     <div v-if="drawPile.length > 0" class="gameCard">
                                         <img class="card-back-img" src="./assets/image/card-back.png" @click="drawCard()">
                                     </div>
-                                    
-                                    
-                                    
                                 </div>
                                 <div class="trash-area other-trash-area">
                                     <h3>その他のゴミ</h3>
@@ -115,6 +112,14 @@
                         </div>
 
                         <div class="bottom-section">
+                            <template v-if="(currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ">
+                                <div class="warning-container">
+                                    <div v-if="activeCard" class="warning-text-variable">ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button></div>
+                                    <div v-else class="warning-text-center">山札からカードを<br>ひいてください。</div>
+
+                                    <div class="warning-bg"></div>
+                                </div>
+                            </template>
                             <div>
                                 <div v-if="!player.isRevealing || playerHands(player.name).length == 0">
                                     <div  class="gameCard">
@@ -123,7 +128,7 @@
                                 </div>
                                 <div v-else class="gameCard-container">
                                     <template v-for="(card, index) in playerHands(player.name)" :key="card.id">
-                                        <game-card :card="card" :style="calculateCardPosition(index, playerHands(player.name).length)"></game-card>
+                                        <game-card @click="pickCard(card)" :card="card" :style="calculateCardPosition(index, playerHands(player.name).length,card)"></game-card>
                                     </template>
                                 </div>
                             </div>
@@ -134,6 +139,12 @@
                                     <i :class="['fa-solid', player.isRevealing ? 'fa-eye' : 'fa-eye-slash']"></i>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="action-buttons-container" v-if="currentPlayer.name == player.name"  :style="buttonCheck('buttons') ? { transform: 'translate(-50%, 0%)' } : {}">
+                            <button @click="trashCard()" :class="{ 'disable-button': !buttonCheck('trash') }" :disabled="!buttonCheck('trash')"><span>捨てる</span></button>
+                            <button @click="useCard()" :class="{ 'disable-button': !buttonCheck('use') }" :disabled="!buttonCheck('use')"><span>使う</span></button>
+                            <button @click="goToNextPlayer()" :class="{ 'disable-button': !buttonCheck('goToNext') }" :disabled="!buttonCheck('goToNext')"><span>次へ</span></button>
                         </div>
                         
                         

@@ -164,7 +164,7 @@ const app = Vue.createApp({
 
             deck:[],
 
-            maxDarkness: 0.5, // Maximum darkness factor
+            maxDarkness: 0.5,
 
         };
     },
@@ -212,6 +212,15 @@ const app = Vue.createApp({
         playerHands() {
             return playerName => this.deck.filter(card => card.location === playerName);
         },
+
+        pickedCard() {
+            return this.deck.find(card => card.picked) || null;
+        },
+        activeCard(){
+            if(!this.pickedCard?.usingCard) return null
+
+            return this.pickedCard
+        }
     },
     watch: {
         drawPile(newVal) {
@@ -353,6 +362,8 @@ const app = Vue.createApp({
                     });
                 });
             });
+
+            console.log(this.deck)
         },
         async distributeCards() {
             if (this.drawPile.length !== this.deck.length) return;
@@ -372,38 +383,54 @@ const app = Vue.createApp({
         },
 
         drawCard(){
-
-            
             if(this.gameStatus !== 'distributed' || this.drawPile.length == 0) return
             
             if(!this.playerHands(this.playerHands(this.currentPlayer.name[0])))return
 
-            this.trashCard(this.playerHands(this.currentPlayer.name)[0])
-            this.drawPile[0].location = this.currentPlayer.name
+            if(this.currentPlayer.hasDrawn) return console.log('cant draw  anymore ') 
+
             
-            this.goToNextPlayer()
+            this.drawPile[0].location = this.currentPlayer.name
+            this.currentPlayer.hasDrawn = true
+            this.currentPlayer.isRevealing = true
+            
+            
         },
-        trashCard(card){
-            card.location = 'trash'
-            card.updatedAt = Date.now();
+        trashCard(){
+            if(!this.pickedCard) return
+
+            this.pickedCard.location = 'trash'
+            this.pickedCard.updatedAt = Date.now();
+
             
             const verticalPosition = (Math.random() * 45);
             const horizontalPosition = (Math.random() * 46);
-
-            card.verticalPosition = Math.random() < 0.5 ? `top: ${verticalPosition}%` : `bottom: ${verticalPosition}%`;
-            card.horizontalPosition = Math.random() < 0.5 ? `left: ${horizontalPosition}%` : `right: ${horizontalPosition}%`;
-
+            
+            this.pickedCard.verticalPosition = Math.random() < 0.5 ? `top: ${verticalPosition}%` : `bottom: ${verticalPosition}%`;
+            this.pickedCard.horizontalPosition = Math.random() < 0.5 ? `left: ${horizontalPosition}%` : `right: ${horizontalPosition}%`;
+            
             const maxDeg = 45;
-            card.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+            this.pickedCard.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+            
+
+            this.pickedCard.picked = false
+            this.currentPlayer.hasMadeMove = true
 
 
         },
-        goToNextPlayer() {
+        async goToNextPlayer() {
             // Move to the next player, wrapping around if necessary
             this.currentPlayer.isRevealing = false
+            this.currentPlayer.hasDrawn = false
+            this.currentPlayer.hasMadeMove = false
+
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
 
-            if(this.developingMode) this.currentPlayer.isRevealing = true
+            // if(this.developingMode){
+            //     this.currentPlayer.isRevealing = true
+            //     await this.sleep(750)
+            //     this.drawCard()
+            // }
         },
         feedBaby(baby,player){
             if(this.gameStatus !== 'distributed') return
@@ -444,13 +471,27 @@ const app = Vue.createApp({
             return { backgroundColor: color };
 
         },
-        calculateCardPosition(index, totalCards) {
+        calculateCardPosition(index, totalCards, card) {
+            if(card.usingCard){
+                return {
+                    left: '10%',
+                    zIndex: 20,
+                };
+            }
             const percentage = (100 / (totalCards - 1)) * index;
 
+            let topPosition = 0
+            let zIndex = 0
+            if(card?.picked){
+                topPosition = -25
+                zIndex = 1
+            }
+
             return {
-                // position: 'absolute',
+                top: `${topPosition}%`,
                 left: `${percentage}%`,
-                transform: `translateX(-${percentage}%)` // Adjust for overlap
+                transform: `translateX(-${percentage}%)`,
+                zIndex,
             };
         },
         getTrashPosition(card,index) {
@@ -465,6 +506,59 @@ const app = Vue.createApp({
             //     ${card.verticalPosition};
             //     ${card.horizontalPosition};
             //     backgroundColor: rgba(0, 0, 0, ${darkness});`;
+        },
+
+        buttonCheck(action) {
+
+            if (action === 'trash') {
+                return this.pickedCard && !this.currentPlayer.hasMadeMove;
+            }
+
+            if (action === 'use') {
+                return this.pickedCard && !this.currentPlayer.hasMadeMove && this.pickedCard.type == 'energy';
+            }
+
+            if (action === 'goToNext') {
+                return this.currentPlayer?.hasMadeMove && this.playerHands(this.currentPlayer.name).length == 5;
+            }
+
+            if(action === 'buttons'){
+                if(!this.currentPlayer.hasDrawn) return false
+
+                if(this.currentPlayer.hasMadeMove) return true
+
+                if(this.activeCard) return false
+
+
+                if(this.pickedCard) return true
+            }
+
+            return false;
+        },
+        pickCard(card){
+            if(!this.currentPlayer.hasDrawn) return
+            if(card.picked) {
+                card.picked = false 
+                card.usingCard = false 
+                return 
+            }
+            this.unPickAllCards()
+            
+            card.picked = true
+        },
+        useCard(){
+            this.pickedCard.usingCard = true
+        },
+        cancelCard(){
+            if(!this.activeCard) return
+            this.activeCard.usingCard = false
+        },
+        unPickAllCards(){
+            for(let i in this.deck){
+                let card = this.deck[i]
+                card.picked = false
+                card.usingCard = false 
+            }
         },
         
     },
@@ -483,6 +577,9 @@ const app = Vue.createApp({
         if(this.developingMode){
             for (let i = 0; i < 20; i++) {
                 this.drawCard()
+                this.playerHands(this.currentPlayer.name)[0].picked = true
+                this.trashCard()
+                this.goToNextPlayer()
                 await this.sleep(25)
             }
         }
