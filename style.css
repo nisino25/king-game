@@ -198,7 +198,7 @@ h2 {
     height: 100%;
     position: relative;
 
-    font-size: 20cqw;
+    font-size: 18cqw;
 
     overflow: hidden;
     margin: auto;
@@ -296,6 +296,37 @@ h2 {
 
 #gameArea .main-area .main-info .draw-pile-area .gameCard{
     margin: 10px auto;
+}
+
+/* ----------------------------------------------------- */
+
+#gameArea .main-area .main-info .drawn-card-container{
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: auto;
+    width: var(--game-card-width);
+    /* height: var(--game-card-height); */
+    aspect-ratio: 3 / 4;
+    box-shadow: 4px 4px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s ease-in-out;
+
+    transform-style: preserve-3d;
+}
+
+#gameArea .main-area .main-info .drawn-card-container .gameCard{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+
+    backface-visibility: hidden;
+    box-sizing: border-box;
+}
+
+#gameArea .main-area .main-info .drawn-card-container .gameCard:last-child{
+    transform: rotateY(-180deg);
 }
 
 /* ----------------------------------------------------- */
@@ -553,6 +584,7 @@ h2 {
     height: calc(100% + 4px) !important;
     z-index: 10;
     transform: translateY(2px);
+    transition: opacity .3s ease-in-out;
 }
 
 .warning-container .warning-text-center{

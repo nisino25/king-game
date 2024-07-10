@@ -151,20 +151,25 @@ const app = Vue.createApp({
             ],
 
             energy:[
-                {name:'エネルギー1',imgSrc: './assets/image/energy-1.jpg'},
-                {name:'エネルギー2',imgSrc: './assets/image/energy-2.jpg'},
+                {name:'エネルギー',imgSrc: './assets/image/energy-1.jpg'},
+                {name:'エネルギー',imgSrc: './assets/image/energy-2.jpg'},
             ],
 
             obstacle:[
-                {name:'障害1',imgSrc: './assets/image/obstacle-1.jpg'},
-                {name:'障害2',imgSrc: './assets/image/obstacle-2.jpg'},
-                {name:'障害3',imgSrc: './assets/image/obstacle-3.jpg'},
-                {name:'障害4',imgSrc: './assets/image/obstacle-4.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-1.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-2.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-3.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-4.jpg'},
             ],
 
             deck:[],
 
             maxDarkness: 0.5,
+
+            movingCardXCoordinate: 0,
+            movingCardYCoordinate: 0,
+            movingCardFlippingDeg: 0,
+            movingAnimationSpeed: 750,
 
         };
     },
@@ -189,6 +194,11 @@ const app = Vue.createApp({
         drawPile() {
             return this.deck.filter(card => card.location === 'drawPile');
         },
+
+        drawPileLength() {
+            return this.deck.filter(card => card.location === 'drawPile' && !card.gettingDrawn).length;
+        },
+
 
         trashPile() {
             return this.deck.filter(card => card.location === 'trash');
@@ -220,6 +230,10 @@ const app = Vue.createApp({
             if(!this.pickedCard?.usingCard) return null
 
             return this.pickedCard
+        },
+
+        gettingDrawnCard(){
+            return this.deck.find(card => card.gettingDrawn) || null;
         }
     },
     watch: {
@@ -382,19 +396,59 @@ const app = Vue.createApp({
             this.gameStatus = 'distributed'
         },
 
-        drawCard(){
+        async drawCard(){
             if(this.gameStatus !== 'distributed' || this.drawPile.length == 0) return
             
             if(!this.playerHands(this.playerHands(this.currentPlayer.name[0])))return
 
             if(this.currentPlayer.hasDrawn) return console.log('cant draw  anymore ') 
 
-            
-            this.drawPile[0].location = this.currentPlayer.name
+            this.drawPile[0].gettingDrawn = true
             this.currentPlayer.hasDrawn = true
             this.currentPlayer.isRevealing = true
+
+            // Set initial position
+            const drawPileBaseLocation = this.$el.querySelector('#drawPileBase');
+            const startPos = this.getFixedPosition(drawPileBaseLocation);
+            this.movingCardXCoordinate = startPos.left;
+            this.movingCardYCoordinate = startPos.top;
+            this.movingCardFlippingDeg = 0
+            await this.sleep(0)
+            this.movingCardFlippingDeg = 180
+            await this.sleep(this.movingAnimationSpeed)
+            await this.animateCard();
+
+            this.drawPile[0].gettingDrawn = false
+            this.drawPile[0].location = this.currentPlayer.name
             
             
+        },
+
+        getFixedPosition(element) {
+            const rect = element.getBoundingClientRect();
+            return {
+                top: rect.top,
+                left: rect.left
+            };
+        },
+        async animateCard() {
+            const gameCardContainerElement = this.$el.querySelector('.gameCard-container');
+            const gameCardElement = gameCardContainerElement.querySelector('.gameCard:last-child');
+            const endPos = this.getFixedPosition(gameCardElement);
+            this.movingCardXCoordinate = endPos.left;
+            this.movingCardYCoordinate = endPos.top -10;
+            
+            await this.sleep(this.movingAnimationSpeed);
+        },
+        getMovingStyle() {
+            return {
+                position: 'fixed',
+                top: `${this.movingCardYCoordinate}px`,
+                left: `${this.movingCardXCoordinate}px`,
+                transform: `rotateY(-${this.movingCardFlippingDeg}deg)`,
+                zIndex: 100,
+                transition: 'all 0.75s'
+            };
         },
         trashCard(){
             if(!this.pickedCard) return
@@ -425,12 +479,6 @@ const app = Vue.createApp({
             this.currentPlayer.hasMadeMove = false
 
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-
-            // if(this.developingMode){
-            //     this.currentPlayer.isRevealing = true
-            //     await this.sleep(750)
-            //     this.drawCard()
-            // }
         },
         feedBaby(baby,player){
             if(this.gameStatus !== 'distributed') return
@@ -560,6 +608,36 @@ const app = Vue.createApp({
                 card.usingCard = false 
             }
         },
+
+        getMovingLocation(){
+            this.drawPileBase = this.$el.querySelector('#drawPileBase');
+            this.gameCardContainer = this.$el.querySelector('.gameCard-container');
+            this.gameCard = this.gameCardContainer.querySelector('.gameCard:last-child');
+
+            this.calculateStyles(this.drawPileBase);
+
+            aw
+
+            if (!this.isAnimating) {
+                this.isAnimating = true;
+                setTimeout(() => {
+                  this.isAnimating = false;
+                }, 500);
+                return this.calculateStyles(this.drawPileBase);
+              } else {
+                return this.calculateStyles(this.gameCard);
+            }
+        },
+
+        calculateStyles(element) {
+            const rect = element.getBoundingClientRect();
+            return {
+                position: 'fixed',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                transition: 'all 0.5s'
+            };
+        }
         
     },
     async mounted(){
@@ -574,15 +652,16 @@ const app = Vue.createApp({
 
         
 
-        if(this.developingMode){
-            for (let i = 0; i < 20; i++) {
-                this.drawCard()
-                this.playerHands(this.currentPlayer.name)[0].picked = true
-                this.trashCard()
-                this.goToNextPlayer()
-                await this.sleep(25)
-            }
-        }
+        // if(this.developingMode){
+        //     for (let i = 0; i < 5; i++) {
+        //         await this.drawCard()
+        //         this.playerHands(this.currentPlayer.name)[0].picked = true
+        //         this.trashCard()
+        //         this.goToNextPlayer()
+        //         await this.sleep(25)
+        //     }
+            
+        // }
         
     },
 });

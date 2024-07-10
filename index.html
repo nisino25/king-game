@@ -58,9 +58,15 @@
 
                             <div class="main-info">
                                 <div class="draw-pile-area">
-                                    <h3>山札(<span>残り{{drawPile.length}}枚</span>)</h3>
-                                    <div v-if="drawPile.length > 0" class="gameCard">
+                                    <h3>山札(<span>残り{{drawPileLength}}枚</span>)</h3>
+                                    <div id="drawPileBase" class="gameCard" :style="{ opacity: drawPile.length > 0 ? 1 : 0 }" style="transition: unset;">
                                         <img class="card-back-img" src="./assets/image/card-back.png" @click="drawCard()">
+                                    </div>
+                                    <div v-if="gettingDrawnCard" :style="getMovingStyle()" class="drawn-card-container">
+                                        <div class="gameCard">
+                                            <img class="card-back-img" src="./assets/image/card-back.png" @click="drawCard()">
+                                        </div>
+                                        <game-card :card="drawPile[0]"></game-card>
                                     </div>
                                 </div>
                                 <div class="trash-area other-trash-area">
@@ -112,14 +118,16 @@
                         </div>
 
                         <div class="bottom-section">
-                            <template v-if="(currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ">
-                                <div class="warning-container">
-                                    <div v-if="activeCard" class="warning-text-variable">ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button></div>
-                                    <div v-else class="warning-text-center">山札からカードを<br>ひいてください。</div>
+                            <div class="warning-container"
+                            :style="{ 
+                                opacity: (currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ? 1 : 0,
+                                pointerEvents: (currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ? 'auto' : 'none'
+                            }">
+                                <div v-if="activeCard" class="warning-text-variable">ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button></div>
+                                <div v-else class="warning-text-center">山札からカードを<br>ひいてください。</div>
 
-                                    <div class="warning-bg"></div>
-                                </div>
-                            </template>
+                                <div class="warning-bg"></div>
+                            </div>
                             <div>
                                 <div v-if="!player.isRevealing || playerHands(player.name).length == 0">
                                     <div  class="gameCard">
