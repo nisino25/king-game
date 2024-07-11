@@ -11,6 +11,7 @@ const app = Vue.createApp({
 
             players: [],
             currentPlayerIndex: 0,
+            chosenPlayer: null,
             
             teamColors: ['#DC143C', '#0047AB', '#228B22', '#FFD700', '#1C1C1C'],
             cardsPerPlayer : 5,
@@ -156,20 +157,31 @@ const app = Vue.createApp({
             ],
 
             obstacle:[
-                {name:'障害',imgSrc: './assets/image/obstacle-1.jpg'},
-                {name:'障害',imgSrc: './assets/image/obstacle-2.jpg'},
-                {name:'障害',imgSrc: './assets/image/obstacle-3.jpg'},
-                {name:'障害',imgSrc: './assets/image/obstacle-4.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-1-v2.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-2-v2.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-3-v2.jpg'},
+                {name:'障害',imgSrc: './assets/image/obstacle-4-v2.jpg'},
+            ],
+
+            able:[
+                {name:'障害',imgSrc: './assets/image/able-1.jpg'},
+                {name:'障害',imgSrc: './assets/image/able-2.jpg'},
             ],
 
             deck:[],
 
             maxDarkness: 0.5,
 
+            drawingCardXCoordinate: 0,
+            drawingCardYCoordinate: 0,
+            drawingCardFlippingDeg: 0,
+
             movingCardXCoordinate: 0,
             movingCardYCoordinate: 0,
-            movingCardFlippingDeg: 0,
-            movingAnimationSpeed: 750,
+            movingCardWidth: 0,
+            movingCardRotation: 0,
+
+            animationSpeed: 750,
 
         };
     },
@@ -220,7 +232,11 @@ const app = Vue.createApp({
                 .sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)); // Reverse order
         },
         playerHands() {
-            return playerName => this.deck.filter(card => card.location === playerName);
+            return playerName => {
+              return this.deck
+                .filter(card => card.location === playerName)
+                .sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+            };
         },
 
         pickedCard() {
@@ -234,25 +250,32 @@ const app = Vue.createApp({
 
         gettingDrawnCard(){
             return this.deck.find(card => card.gettingDrawn) || null;
-        }
+        },
+
+        movingCard(){
+            return this.deck.find(card => card.isMoving) || null;
+        },
+
     },
     watch: {
         drawPile(newVal) {
             if(this.gameStatus !== 'distributed') return
+
             if (newVal.length === 0) {
                 this.gameStatus = 'ended'
                 alert('The draw pile is empty!');
             }
         },
         players: {
-            handler(newVal) {
-                newVal.forEach(player => {
+            handler: async function(newVal) {
+              newVal.forEach(async player => {
                 const allBabiesFed = player.babies.every(baby => baby.foodArray.length === 2);
                 if (allBabiesFed) {
-                    alert(`Game over for ${player.name}!`);
-                    this.gameStatus = 'ended';
+                  await this.sleep(500);
+                  alert(`${player.name}!が勝利しました！`);
+                  this.gameStatus = 'ended';
                 }
-                });
+              });
             },
             deep: true
         },
@@ -282,6 +305,29 @@ const app = Vue.createApp({
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
+        },
+
+        getPlayerStyle(player, index) {
+            const style = {
+              borderColor: player.color
+            };
+
+            if(this.chosenPlayer){
+                if(player.name !== this.chosenPlayer.name){
+                    style.backgroundColor = 'dimGray';
+                    style.opacity = '0.5';
+                    style.transition = 'all .05s';
+                    return style
+                }
+                return style
+            } 
+
+            if (player !== this.currentPlayer) {
+              style.backgroundColor = 'dimGray';
+              style.opacity = '0.75';
+            }
+        
+            return style;
         },
         async goToGamePage() {
             if (!this.readyToPlay) return;
@@ -350,14 +396,19 @@ const app = Vue.createApp({
                 },
                 {
                     type: 'obstacle',
-                    nameIndexContainer: createNameIndexContainer([4, 4, 4, 4, ])
+                    nameIndexContainer: createNameIndexContainer([3, 3, 3, 3, ])
+                },
+                {
+                    type: 'able',
+                    nameIndexContainer: createNameIndexContainer([6, 6,])
                 }
             ];
 
             const dataMap = {
                 food: this.food,
                 energy: this.energy,
-                obstacle: this.obstacle
+                obstacle: this.obstacle,
+                able: this.able
             };
 
             let id = 1;
@@ -388,6 +439,7 @@ const app = Vue.createApp({
                     if (card) {
                         // console.log(`Distributing ${card.id} to ${player.name}`);
                         card.location = player.name;
+                        card.updatedAt = Date.now()
                         await this.sleep(20); // Add delay if needed
                     }
                 }
@@ -401,7 +453,7 @@ const app = Vue.createApp({
             
             if(!this.playerHands(this.playerHands(this.currentPlayer.name[0])))return
 
-            if(this.currentPlayer.hasDrawn) return console.log('cant draw  anymore ') 
+            if(this.currentPlayer.hasDrawn) return
 
             this.drawPile[0].gettingDrawn = true
             this.currentPlayer.hasDrawn = true
@@ -410,20 +462,20 @@ const app = Vue.createApp({
             // Set initial position
             const drawPileBaseLocation = this.$el.querySelector('#drawPileBase');
             const startPos = this.getFixedPosition(drawPileBaseLocation);
-            this.movingCardXCoordinate = startPos.left;
-            this.movingCardYCoordinate = startPos.top;
-            this.movingCardFlippingDeg = 0
+            this.drawingCardXCoordinate = startPos.left;
+            this.drawingCardYCoordinate = startPos.top;
+            this.drawingCardFlippingDeg = 0
             await this.sleep(0)
-            this.movingCardFlippingDeg = 180
-            await this.sleep(this.movingAnimationSpeed)
-            await this.animateCard();
+            this.drawingCardFlippingDeg = 180
+            await this.sleep(this.animationSpeed)
+            await this.moveToHand();
 
             this.drawPile[0].gettingDrawn = false
+            this.drawPile[0].updatedAt = Date.now()
             this.drawPile[0].location = this.currentPlayer.name
             
             
         },
-
         getFixedPosition(element) {
             const rect = element.getBoundingClientRect();
             return {
@@ -431,62 +483,174 @@ const app = Vue.createApp({
                 left: rect.left
             };
         },
-        async animateCard() {
+        async moveToHand() {
             const gameCardContainerElement = this.$el.querySelector('.gameCard-container');
             const gameCardElement = gameCardContainerElement.querySelector('.gameCard:last-child');
             const endPos = this.getFixedPosition(gameCardElement);
-            this.movingCardXCoordinate = endPos.left;
-            this.movingCardYCoordinate = endPos.top -10;
+            this.drawingCardXCoordinate = endPos.left;
+            this.drawingCardYCoordinate = endPos.top;
             
-            await this.sleep(this.movingAnimationSpeed);
+            await this.sleep(this.animationSpeed);
         },
         getMovingStyle() {
             return {
                 position: 'fixed',
-                top: `${this.movingCardYCoordinate}px`,
-                left: `${this.movingCardXCoordinate}px`,
-                transform: `rotateY(-${this.movingCardFlippingDeg}deg)`,
+                top: `${this.drawingCardYCoordinate}px`,
+                left: `${this.drawingCardXCoordinate}px`,
+                transform: `rotateY(-${this.drawingCardFlippingDeg}deg)`,
                 zIndex: 100,
-                transition: 'all 0.75s'
+                transition: `all ${this.animationSpeed/1000 - .05}s`
             };
         },
-        trashCard(){
-            if(!this.pickedCard) return
 
-            this.pickedCard.location = 'trash'
-            this.pickedCard.updatedAt = Date.now();
+        async trashCard(card){
 
+            const tempCard = card ?? this.pickedCard;
             
             const verticalPosition = (Math.random() * 45);
             const horizontalPosition = (Math.random() * 46);
+
+            const vert = Math.random() < 0.05 ? 'top' : 'bottom'
+            const horizon = Math.random() < 0.5 ? 'left' : 'right'
             
-            this.pickedCard.verticalPosition = Math.random() < 0.5 ? `top: ${verticalPosition}%` : `bottom: ${verticalPosition}%`;
-            this.pickedCard.horizontalPosition = Math.random() < 0.5 ? `left: ${horizontalPosition}%` : `right: ${horizontalPosition}%`;
+            tempCard.verticalPosition = `${vert}: ${verticalPosition}%`;
+            tempCard.horizontalPosition = `${horizon}: ${horizontalPosition}%`;
             
             const maxDeg = 45;
-            this.pickedCard.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+            tempCard.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+
+            tempCard.isMoving = true
+
+            
             
 
-            this.pickedCard.picked = false
+            // Set initial position ------------------
+            // const drawPileBaseLocation = this.$el.querySelector('#drawPileBase');
+            const startPos = this.getFixedPosition(this.$el.querySelector(`#card-${tempCard.id}`));
+            this.movingCardYCoordinate = `top: ${startPos.top}px`;
+            this.movingCardXCoordinate = `left: ${startPos.left}px`;
+            this.movingCardWidth = this.$el.querySelector(`#card-${tempCard.id}`).offsetWidth -2;
+            
+            this.movingCardRotation = 0
+            await this.sleep(100)
+
+            const finalWidth = 50
+            const finalHeight = finalWidth * 1.33
+
+            if(tempCard.type !== 'food'){
+                
+                this.movingCardRotation = tempCard.rotation
+
+                const trashContainer = this.$el.querySelector('.other-trash-area-container');
+                const rect = trashContainer.getBoundingClientRect();
+                const width = rect.width;
+                const height = rect.height;
+                const top = rect.top;
+                const left = rect.left;
+
+                let tempXcordinate = horizon == 'left' 
+                ?  left + width * (horizontalPosition / 100)
+                : left + width -(width * (horizontalPosition / 100))  - finalWidth - 2
+
+                let tempYcordinate = vert == 'top' 
+                ?  top + height * (verticalPosition / 100) 
+                : top + height -(height * (verticalPosition / 100)) - finalHeight -2
+
+                this.movingCardXCoordinate = `left: ${tempXcordinate}px`;
+                this.movingCardYCoordinate = `top: ${tempYcordinate}px`;
+            }else{
+                const endPosElement = this.$el.querySelector('.main-area .main-grid');
+    
+                const rect = endPosElement.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                this.movingCardYCoordinate = `top: ${centerY}px`;
+                this.movingCardXCoordinate = `left: ${centerX}px`;
+            }
+
+            this.movingCardWidth = finalWidth;
+
+            
+            await this.sleep(1200);
+            
+            tempCard.isMoving = false
+
+            // -------------------------
+
+            tempCard.location = 'trash'
+            tempCard.updatedAt = Date.now();
+            
+
+            tempCard.usingCard = false
+            tempCard.picked = false
+
             this.currentPlayer.hasMadeMove = true
 
 
         },
+        getMovingLocation(){
+            this.drawPileBase = this.$el.querySelector('#drawPileBase');
+            this.gameCardContainer = this.$el.querySelector('.gameCard-container');
+            this.gameCard = this.gameCardContainer.querySelector('.gameCard:last-child');
+
+            this.calculateStyles(this.drawPileBase);
+
+            if (!this.isAnimating) {
+                this.isAnimating = true;
+                setTimeout(() => {
+                  this.isAnimating = false;
+                }, this,animationSpeed);
+                return this.calculateStyles(this.drawPileBase);
+              } else {
+                return this.calculateStyles(this.gameCard);
+            }
+        },
+        getMovingCardLocation(){
+            return {
+                position: 'absolute',
+                ...this.parsePosition(this.movingCardYCoordinate),
+                ...this.parsePosition(this.movingCardXCoordinate),
+                width: this.movingCardWidth + 'px',
+                transform: 'rotate(' + this.movingCardRotation + 'deg)'
+            };
+        },
+        parsePosition(position) {
+            const [property, value] = position.split(': ');
+            return { [property]: value };
+        },
+
+        calculateStyles(element) {
+            const rect = element.getBoundingClientRect();
+            return {
+                position: 'fixed',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                transition: 'all 0.5s'
+            };
+        },
+
         async goToNextPlayer() {
             // Move to the next player, wrapping around if necessary
             this.currentPlayer.isRevealing = false
             this.currentPlayer.hasDrawn = false
             this.currentPlayer.hasMadeMove = false
 
+            for(let card of this.deck){
+                card.picked = false
+                card.usingCard = false
+            }
+
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
         },
-        feedBaby(baby,player){
-            if(this.gameStatus !== 'distributed') return
-            if(this.currentPlayer.name !== player.name) return
-            if(baby.foodArray.length == 2) return
-            
+        getBorderStyle(baby,player){
 
-            baby.foodArray.push(this.food[0])
+            return {
+                borderColor: player.color,
+                borderWidth: baby.foodArray.length == 2 ? '0px' : '2.5px',
+                opacity: baby.foodArray.length == 2? '1' : '0.8'
+            };
+
+            
         },
         getClass(baby) {
             let className = 'baby-img-container';
@@ -531,7 +695,7 @@ const app = Vue.createApp({
             let topPosition = 0
             let zIndex = 0
             if(card?.picked){
-                topPosition = -25
+                topPosition = -30
                 zIndex = 1
             }
 
@@ -548,22 +712,39 @@ const app = Vue.createApp({
                 ${card.verticalPosition};
                 ${card.horizontalPosition};
             `;
-            // const darkness = (index + 1) / this.otherTrashPile.length * this.maxDarkness;
-            // return `
-            //     transform: rotate(${card?.rotation}deg); 
-            //     ${card.verticalPosition};
-            //     ${card.horizontalPosition};
-            //     backgroundColor: rgba(0, 0, 0, ${darkness});`;
         },
 
         buttonCheck(action) {
 
             if (action === 'trash') {
+                if(this.currentPlayer.hasMadeMove && this.pickedCard && this.playerHands(this.currentPlayer.name).length > 5) return true
                 return this.pickedCard && !this.currentPlayer.hasMadeMove;
             }
 
             if (action === 'use') {
-                return this.pickedCard && !this.currentPlayer.hasMadeMove && this.pickedCard.type == 'energy';
+                if(!this.pickedCard) return false
+                if(this.playerHands(this.currentPlayer.name).length <= 5) return false
+
+                
+                if(this.pickedCard.type == 'food') {
+                    const kingFood1 = this.food[this.currentPlayer.king.foodRequirements[0]].name
+                    const kingFood2 = this.food[this.currentPlayer.king.foodRequirements[1]].name
+    
+                    if(this.pickedCard.name == kingFood1 || this.pickedCard.name == kingFood2) return true
+
+                    return false
+                    
+                }
+
+                if(this.pickedCard.type == 'able') {
+                    for(let baby of this.currentPlayer.babies){
+                        if(baby.isBlocked) return true
+                    }
+                    return false
+                }
+
+
+                return true
             }
 
             if (action === 'goToNext') {
@@ -600,6 +781,7 @@ const app = Vue.createApp({
         cancelCard(){
             if(!this.activeCard) return
             this.activeCard.usingCard = false
+            this.pickedCard.picked = false
         },
         unPickAllCards(){
             for(let i in this.deck){
@@ -609,35 +791,97 @@ const app = Vue.createApp({
             }
         },
 
-        getMovingLocation(){
-            this.drawPileBase = this.$el.querySelector('#drawPileBase');
-            this.gameCardContainer = this.$el.querySelector('.gameCard-container');
-            this.gameCard = this.gameCardContainer.querySelector('.gameCard:last-child');
+        
 
-            this.calculateStyles(this.drawPileBase);
+        async retriveFood(card){
+            if(this.activeCard?.type !== 'energy') return
 
-            aw
-
-            if (!this.isAnimating) {
-                this.isAnimating = true;
-                setTimeout(() => {
-                  this.isAnimating = false;
-                }, 500);
-                return this.calculateStyles(this.drawPileBase);
-              } else {
-                return this.calculateStyles(this.gameCard);
-            }
+            await this.trashCard(this.activeCard)
+            
+            card.updatedAt = Date.now()
+            card.location = this.currentPlayer.name
         },
 
-        calculateStyles(element) {
-            const rect = element.getBoundingClientRect();
-            return {
-                position: 'fixed',
-                top: `${rect.top}px`,
-                left: `${rect.left}px`,
-                transition: 'all 0.5s'
-            };
-        }
+        async interactBaby(baby,player){
+            if(this.gameStatus !== 'distributed') return
+            if(this.currentPlayer.name !== player.name) return
+
+            if(this.activeCard?.type == 'food') {
+                if(baby.isBlocked) return
+                if(baby.foodArray.length >= 2) return
+                
+                
+                baby.foodArray.push(this.activeCard)
+    
+                this.activeCard.usingCard = false
+                this.pickedCard.pickCard = false
+                this.pickedCard.location = null
+    
+                this.currentPlayer.hasMadeMove = true
+            }
+
+
+            if(this.activeCard?.type == 'able') {
+                if(!baby.isBlocked) return 
+
+                card = baby.isBlocked
+                await this.trashCard(card)
+
+                baby.isBlocked = false
+    
+                this.pickedCard.usingCard = false
+                this.pickedCard.pickCard = false
+
+                await this.trashCard(this.pickedCard)
+    
+                this.currentPlayer.hasMadeMove = true
+            }
+
+            // await this.drawCard()
+        },
+
+        async randomObstacle(){
+            if(this.activeCard.type !== 'obstacle') return
+
+            // const totalRounds = Math.floor(Math.random() * 20) + 30; // Random total iterations between 30 and 50
+            const totalRounds = Math.floor(Math.random() * 6) + 12; // Random total iterations between 30 and 50
+            const startInterval = Math.random() * 10 + 20; // Random start interval between 20 and 30 ms
+            const endInterval = 200; // End interval in milliseconds
+            let tempPlayerIndex = this.currentPlayerIndex; // Use a temporary index for the roulette effect
+
+            for (let i = 0; i < totalRounds; i++) {
+                tempPlayerIndex = (tempPlayerIndex + 1) % this.players.length;
+                this.chosenPlayer = this.players[tempPlayerIndex];
+
+                const progress = i / totalRounds;
+                const interval = startInterval + (endInterval - startInterval) * progress; // Linear easing
+                await this.sleep(interval);
+            }
+
+            // Ensure the final chosenPlayer is selected after the loop
+            this.chosenPlayer = this.players[tempPlayerIndex];
+
+            await this.sleep(1000)
+
+            let blockFlag = false
+            for (let baby of this.chosenPlayer.babies) {
+                if (!baby.isBlocked && baby.foodArray.length == 0) {
+                  baby.isBlocked = this.activeCard;
+                  blockFlag = true
+                  break; // Exit the loop after finding the first unblocked baby
+                }
+            }
+
+            this.activeCard.usingCard = false
+            this.pickedCard.pickCard = false
+            if(blockFlag) this.pickedCard.location = null
+            
+            
+            await this.sleep(1000)
+            this.chosenPlayer = null
+
+            this.currentPlayer.hasMadeMove = true
+        },
         
     },
     async mounted(){
@@ -650,17 +894,20 @@ const app = Vue.createApp({
             await this.goToGamePage()
         }
 
+
         
 
         // if(this.developingMode){
+        //     const ogSpeed = this.animationSpeed
+        //     this.animationSpeed = 50
         //     for (let i = 0; i < 5; i++) {
         //         await this.drawCard()
         //         this.playerHands(this.currentPlayer.name)[0].picked = true
         //         this.trashCard()
         //         this.goToNextPlayer()
-        //         await this.sleep(25)
         //     }
             
+        //     this.animationSpeed = ogSpeed
         // }
         
     },
@@ -685,6 +932,10 @@ app.component('game-card', {
                 case  'obstacle' : 
                     color = 'Chocolate';
                     break;
+                
+                case  'able' : 
+                    color = 'forestGreen';
+                    break;
             
                 default :
                     color = 'black';
@@ -696,7 +947,7 @@ app.component('game-card', {
         },
     },
     template: `
-        <div class="gameCard">
+        <div class="gameCard" :id="'card-' + card.id">
             <div class="card-front" :style="getBackgroundColor(card)">
                 <div class="gameCard-top-block">
                     <span v-if="card.type === 'food'">{{ card.name }}</span>

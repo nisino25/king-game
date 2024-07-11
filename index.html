@@ -48,7 +48,7 @@
                                 <div class="food-trash-container">
                                     <template v-for="(group, index) in foodTrash" :key="index">
                                         <div class="card-block">
-                                            <game-card :card="group[0]"></game-card>
+                                            <game-card @click="retriveFood(group[0])" :card="group[0]"></game-card>
                                             <span class="food-remain">x{{ group.length }}</span>
                                         </div>
                                     </template>
@@ -84,15 +84,16 @@
                         
                     </div>
                     
-                    <div v-for="(player, index) in players" :key="index" :class="`grid-item player player-${index + 1}`" :style="[ { borderColor: player.color }, index !== currentPlayerIndex ? { backgroundColor: 'dimGray', opacity: '.75' } : {} ]">
+                    <div v-for="(player, index) in players" :key="index" :class="`grid-item player player-${index + 1}`" :style="getPlayerStyle(player, index)">
                         <!-- Player content -->
                         <div class="main-grid">
 
                             <div class="babies-info">
                                 <template v-for="(baby, babyIndex) in player.babies" :key="babyIndex">
-                                    <div class="baby-item" :style="{borderColor: player.color}"  @click="feedBaby(baby, player)">
-                                        <div :class="getClass(baby)"  :style="baby.foodArray.length == 2 ? '' : 'opacity: .5'">
+                                    <div class="baby-item" :style="getBorderStyle(baby,player)"  @click="interactBaby(baby,player)">
+                                        <div :class="getClass(baby)">
                                             <img :src="baby.foodArray.length == 2 ? baby.kingImgSrc : baby.babyImgSrc" alt="Baby Image">
+                                            <game-card v-if="baby.isBlocked" :card="baby.isBlocked" class="blocking-card"></game-card>
                                         </div>
                                         <span>x{{baby.foodArray.length}}</span>
                                     </div>
@@ -123,8 +124,21 @@
                                 opacity: (currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ? 1 : 0,
                                 pointerEvents: (currentPlayer.name == player.name) && (!currentPlayer.hasDrawn || activeCard) ? 'auto' : 'none'
                             }">
-                                <div v-if="activeCard" class="warning-text-variable">ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button></div>
-                                <div v-else class="warning-text-center">山札からカードを<br>ひいてください。</div>
+                                <div v-if="activeCard?.type == 'energy'" class="warning-text-variable">
+                                    ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button>
+                                </div>
+                                <div v-if="activeCard?.type == 'food'" class="warning-text-variable">
+                                   餌をあげる子供を<br>選んでください<br><button @click="cancelCard()">キャンセル</button>
+                                </div>
+                                <div v-if="activeCard?.type == 'obstacle'" class="warning-text-variable">
+                                    <button @click="randomObstacle()">ルーレットを回す</button><br><button @click="cancelCard()">キャンセル</button>
+                                </div>
+                                <div v-if="activeCard?.type == 'able'" class="warning-text-variable">
+                                    取りたい環境破壊を<br>選んでください<br><button @click="cancelCard()">キャンセル</button>
+                                </div>
+                                
+
+                                <div v-if="!activeCard" class="warning-text-center">山札からカードを<br>ひいてください。</div>
 
                                 <div class="warning-bg"></div>
                             </div>
@@ -136,7 +150,11 @@
                                 </div>
                                 <div v-else class="gameCard-container">
                                     <template v-for="(card, index) in playerHands(player.name)" :key="card.id">
-                                        <game-card @click="pickCard(card)" :card="card" :style="calculateCardPosition(index, playerHands(player.name).length,card)"></game-card>
+                                        
+                                        <game-card v-if="card == movingCard" :card="card" :style="getMovingCardLocation()" style="position: fixed; transition: all 1s; z-index: 100; "></game-card>
+
+                                        <game-card v-else @click="pickCard(card)" :card="card" :style="calculateCardPosition(index, playerHands(player.name).length,card)"></game-card>
+                                        
                                     </template>
                                 </div>
                             </div>
@@ -159,6 +177,8 @@
                     </div>
                     
                 </div>
+                
+                <!-- {{currentPlayer}} -->
             </div>
 
         </div>
