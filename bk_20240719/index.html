@@ -13,7 +13,7 @@
 
     <title>King Game</title>
 
-    <link rel="stylesheet" href="./style.css?v=20240801">
+    <link rel="stylesheet" href="./style.css">
 
     
 
@@ -23,12 +23,12 @@
 <body>
 
     <div id="app">
-
-        <!-- <div style="position: fixed; top: 50px; left: 50vw; display: flex; gap: 10px; transform: translateX(-50%);">
-            <button @click="getDetail()">Get Detail</button>
-        </div> -->
-
         <div class="inner">
+            <!-- <div v-if="developingMode"  style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%);">
+                <button @click="getDetail()" >Get Detail</button>
+                <button @click="currentPlayerIndex++" style="margin-left: 10px;">go next</button>
+
+            </div> -->
 
             <div v-if="currentPage === 'before'">
                 <div class="input-modal">
@@ -44,28 +44,17 @@
             <div v-if="currentPage === 'game'">
                 <div id="gameArea">
 
+                    
                     <div class="top-block">
-
                         <div class="other-player-container">
                             <template v-for="otherPlayer in otherPlayers" :key="otherPlayer.name">     
-                                <div class="other-player" :class="{ 'active': currentPlayer == otherPlayer }" :style="{ borderColor: otherPlayer.color || 'black' }" :id="'player-'+ otherPlayer.name">
+                                <div class="other-player" :style="{ borderColor: otherPlayer.color || 'black' }" :id="'player-'+ otherPlayer.name">
                                     <div class="baby-info">
                                         <h5>{{otherPlayer.name}}<i class="fa-solid fa-robot" v-if="otherPlayer.isAI"></i></h5>
                                         <div class="babies-container">
                                             <template v-for="(baby, babyIndex) in otherPlayer.babies" :key="babyIndex">
-                                                <div
-                                                    class="baby-item"
-                                                    :id="otherPlayer.name + '-baby-' + babyIndex"
-                                                    @click="interactBaby(baby, otherPlayer, babyIndex)"
-                                                >
-                                                    <i v-if="baby.isBlocked" class="fa-solid fa-ban"></i>
-                                                    <img 
-                                                        :src="baby.foodArray.length == 2 ? baby.kingImgSrc : baby.babyImgSrc"
-                                                        :style="{
-                                                            opacity: baby.foodArray.length === 2 ? 1 : 0.6,
-                                                            border: baby.foodArray.length === 2 ? '' : `dashed 2px ${otherPlayer.color}`
-                                                        }"
-                                                    >
+                                                <div class="baby-item" :id="otherPlayer.name + '-baby-' + babyIndex" :style="{ borderColor: baby.foodArray.length == 2 ? 'transparent'  : otherPlayer.color}"  @click="interactBaby(baby,otherPlayer,babyIndex)">
+                                                    <img :src="baby.foodArray.length == 2 ? baby.kingImgSrc : baby.babyImgSrc">
                                                     <span class="baby-food-counter">x{{baby.foodArray.length}}</span>
                                                 </div>
                                             </template>
@@ -89,87 +78,70 @@
                                 </div>
                             </template>
                         </div>
-
                         <div class="public-area">
-
                             <div class="options">
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                                 <i class="fa-regular fa-comment"></i>
                                 <i class="fa-solid fa-gear"></i>
                             </div>
-                            
-                            <div class="trash-block">
-                                <p class="trash-label">ゴミ捨て場</p>
-                                <div class="trash-area">
-                                    <template v-for="(card, index) in trashPile" :key="card.id">
-                                        <game-card
-                                            :card="card" 
-                                            :style="{ 
-                                                left: card.trashLocationX + '%', 
-                                                top: card.trashLocationY + '%', 
-                                                transform: `rotate(${card.finalRotation}deg)`,
-                                                filter: index === trashPile.length -1 && card.type == 'food'? 'none' : 'brightness(50%)'
-                                            }"
-                                        >
-                                        </game-card>
-                                        
-                                    </template>
-                                </div>
+        
+                            <p class="other-trash-area-label">ゴミ捨て場</p>
+                            <div class="other-trash-area-container">
+                                <div class="gameCard" style="top: 10%; left: 69%; transform: rotate(-12deg);"></div>
+                                <div class="gameCard" style="top: 20%; left: 36%; transform: rotate(-14deg);"></div>
+                                <div class="gameCard" style="top: 24%; left: 38%; transform: rotate(5deg);"></div>
+                                <div class="gameCard" style="top: 13%; left: 29%; transform: rotate(5deg);"></div>
+                                <div class="gameCard" style="top: 9%; left: 7%; transform: rotate(-7deg);"></div>
+                                <div class="gameCard" style="top: 30%; left: 79%; transform: rotate(11deg);"></div>
+                                <div class="gameCard" style="top: 32%; left: 65%; transform: rotate(-2deg);"></div>
+                                <div class="gameCard" style="top: 21%; left: 38%; transform: rotate(-11deg);"></div>
+                                <div class="gameCard" style="top: 20%; left: 23%; transform: rotate(5deg);"></div>
+                                <div class="gameCard" style="top: 23%; left: 48%; transform: rotate(6deg);"></div>
                             </div>
 
                             <div class="draw-pile" id="drawPileBase">
                                 <div class="gameCard" @click="drawCard()">
-                                    <img v-if="drawPile?.length > 0" src="./assets/image/card-back.png" alt="">
-                                    <span :style="{ color: drawPile?.length < 11 ? 'crimson' : 'black' }">{{ drawPile?.length }}</span>
-                                    <div class="dice-container" :style="{ opacity: isDieCast ? 1 : 0 }">
-                                        <div class="dice" :style="diceTransform">
-                                            <div v-for="n in 6" :key="n" class="side">
-                                                <div class="dot" :style="{ backgroundColor: teamColors[n - 1] }"></div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <img src="./assets/image/card-back.png" alt="">
+                                    <span>{{drawPile.length}}</span>
+                                    <game-card v-if="drawPile.length > 0" :card="drawPile[0]"></game-card>
                                 </div>
                             </div>
 
                         </div>
-
                     </div>
 
-                    <div class="lower-block" :style="{ borderColor: yourPlayer.color || 'black' }" :class="{ 'active': currentPlayer == yourPlayer }">
+                    <div class="lower-block">
                         <div class="upper-part">
-                            <div class="baby-side">
-                                <h5>{{yourPlayer.name}}</h5>
-                                <div class="babies-container">
-                                    <template v-for="(baby, babyIndex) in yourPlayer.babies" :key="babyIndex">
-                                        <div
-                                            class="baby-item"
-                                            :id="yourPlayer.name + '-baby-' + babyIndex"
-                                            @click="interactBaby(baby, yourPlayer, babyIndex)"
-                                        >
-                                            <i v-if="baby.isBlocked" class="fa-solid fa-ban"></i>
-                                            <img
-                                                :src="baby.foodArray.length == 2 ? baby.kingImgSrc : baby.babyImgSrc"
-                                                :style="{
-                                                    opacity: baby.foodArray.length === 2 ? 1 : 0.6,
-                                                    border: baby.foodArray.length === 2 ? '' : `dashed 2px ${yourPlayer.color}`
-                                                }"
-                                            >
-                                            <span class="baby-food-counter">x{{baby.foodArray.length}}</span>
-                                        </div>
-                                    </template>
+                            <div class="babies-container">
+                                <div class="baby-item" id="ウキャキャ-baby-0" style="border-color: rgb(28, 28, 28);">
+                                    <img src="./assets/image/eagle-baby.jpg" alt="Baby Image">
+                                    <span class="baby-food-counter">x0</span>
+                                </div>
+                                <div class="baby-item" id="ウキャキャ-baby-0" style="border-color: rgb(28, 28, 28);">
+                                    <img src="./assets/image/eagle-baby.jpg" alt="Baby Image">
+                                    <span class="baby-food-counter">x0</span>
+                                </div>
+                                <div class="baby-item" id="ウキャキャ-baby-0" style="border-color: rgb(28, 28, 28);">
+                                    <img src="./assets/image/eagle-baby.jpg" alt="Baby Image">
+                                    <span class="baby-food-counter">x0</span>
+                                </div>
+                                <div class="baby-item" id="ウキャキャ-baby-0" style="border-color: rgb(28, 28, 28);">
+                                    <img src="./assets/image/eagle-baby.jpg" alt="Baby Image">
+                                    <span class="baby-food-counter">x0</span>
                                 </div>
                             </div>
                             <div class="player-info">
+                                <h5>{{yourPlayer.name}}</h5>
                                 <div class="king-container">
                                     <div class="king-img">
-                                        <img :src="yourPlayer?.king.imgSrc">
+                                        <img src="./assets/image/eagle.jpg">
                                     </div>
                                     <div class="king-food-container">
                                         <div>
-                                            <img :src="food[yourPlayer?.king.foodRequirements[0]].imgSrc">
+                                            <img src="./assets/image/food-2-v2.jpg">
                                         </div>
                                         <div>
-                                            <img :src="food[yourPlayer?.king.foodRequirements[1]].imgSrc">
+                                            <img src="./assets/image/food-4-v2.jpg">
                                         </div>
                                     </div>
                                 </div>
@@ -180,23 +152,19 @@
                             <div class="warning-container"
                                 v-if="this.gameStatus == 'distributed'"
                                 :style="{ 
-                                    opacity: ((currentPlayer == yourPlayer) && (!currentPlayer.hasDrawn || activeCard)) && !movingCard  ? 1 : 0,
-                                    pointerEvents: ((currentPlayer == yourPlayer) && (!currentPlayer.hasDrawn || activeCard)) && !movingCard ? 'auto' : 'none'
+                                    opacity: ((currentPlayer == yourPlayer) && (!currentPlayer.hasDrawn || activeCard)) || currentPlayer !== yourPlayer ? 1 : 0,
+                                    pointerEvents: (currentPlayer == yourPlayer) && (!currentPlayer.hasDrawn || activeCard) ? 'auto' : 'none'
                                 }"
                             >
                                 <template v-if="!movingCard">
                                     <div v-if="activeCard?.type == 'energy'" class="warning-text-variable">
-                                        <button class="use-button" :class="{ 'disable-button': !retriveCheck() }" @click="retriveFood()">一番上の食べ物を<br>拾ってくる</button>
-                                        <br>
-                                        <button @click="cancelCard()">キャンセル</button>
+                                        ゴミ捨て場から<br>食べ物を選んでください<br><button @click="cancelCard()">キャンセル</button>
                                     </div>
                                     <div v-if="activeCard?.type == 'food'" class="warning-text-variable">
                                        餌をあげる子供を<br>選んでください<br><button @click="cancelCard()">キャンセル</button>
                                     </div>
                                     <div v-if="activeCard?.type == 'obstacle'" class="warning-text-variable">
-                                        <button class="use-button" @click="randomObstacle()">サイコロを回す</button>
-                                        <br>
-                                        <button @click="cancelCard()">キャンセル</button>
+                                        <button @click="randomObstacle()">ルーレットを回す</button><br><button @click="cancelCard()">キャンセル</button>
                                     </div>
                                     <div v-if="activeCard?.type == 'able'" class="warning-text-variable">
                                         取りたい環境破壊を<br>選んでください<br><button @click="cancelCard()">キャンセル</button>
@@ -206,62 +174,57 @@
 
                                 <div v-if="!activeCard && !this.currentPlayer.hasDrawn" class="warning-text-center">山札からカードを<br>ひいてください。</div>
 
+                                <div v-if="currentPlayer !== yourPlayer" class="warning-text-center">他のプレイヤーの<br>ターンです</div>
+
                                 <div class="warning-bg"></div>
                             </div>
 
                             <div class="hands-container">
                                 <template v-for="(card, index) in yourPlayerHands" :key="card.id">
                                         
+                                    <game-card v-if="card == movingCard && movingCard.location !== null" :card="card" :style="yourPlayerHands()"></game-card>
+
                                     <game-card 
+                                        v-else 
                                         @click="pickCard(card)" 
                                         :card="card" 
-                                        :class="{ 'brightness-effect': validFoodCardCheck(card) }"
                                         :style="getCardStyle(card, index)"
                                     >
                                     </game-card>
                                     
                                 </template>
+                                <!-- <game-card 
+                                        @click="pickCard(yourPlayerHands[0])" 
+                                        :card="yourPlayerHands[0]" 
+                                        :style="{
+                                            left: `${5 * 20}%`,
+                                            transform: `translateX(-${5 * 20}%)`
+                                        }"
+                                        >
+                                    </game-card> -->
                             </div>
+
+                            
 
                             <div class="action-buttons-container" v-if="currentPlayer.name == yourPlayer.name"  :style="buttonCheck('buttons') ? { transform: 'translate(-50%, 0%)' } : {}">
                                 <button @click="trashCard()" :class="{ 'disable-button': !buttonCheck('trash') }" :disabled="!buttonCheck('trash')"><span>捨てる</span></button>
-                                <button @click="useCard()" class="use-button" :class="{ 'disable-button': !buttonCheck('use') }" :disabled="!buttonCheck('use')"><span>使う</span></button>
+                                <button @click="useCard()" :class="{ 'disable-button': !buttonCheck('use') }" :disabled="!buttonCheck('use')"><span>使う</span></button>
+                                <button @click="goToNextPlayer()" :class="{ 'disable-button': !buttonCheck('goToNext') }" :disabled="!buttonCheck('goToNext')"><span>次へ</span></button>
                             </div>
 
                         </div>
                     </div>
                     
                 </div>
-
-                <div 
-                    v-if="drawingCard" 
-                    class="drawing-card-container" 
-                    :style="{ 
-                        left: drawingCard.currentX + 'px', 
-                        top: drawingCard.currentY + 'px', 
-                        width: drawingCard.width + 'px', 
-                        transition: `all ${this.animationSpeed/1000 - .05}s`
-                    }"
-                >
-                    <div class="gameCard card-back" :style="{ transform: 'rotateY(' + drawingCard.drawingCardFlippingDeg + 'deg)' }">
-                        <img class="card-back-img" src="./assets/image/card-back.png">
-                    </div>
-                    
-                    
-                    <game-card v-if="currentPlayer == yourPlayer" :card="drawingCard" :style="{ transform: 'rotateY(' + (drawingCard.drawingCardFlippingDeg - 180) + 'deg)' }"></game-card>
-                </div>
-                    
-                <game-card v-if="movingCard" class="movingCard" :card="movingCard" :style="movingCardLocation">
-                </game-card>
-
-
+                
+                <!-- {{currentPlayer}} -->
             </div>
 
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
-    <script src="./script.js?v=20240801"></script>
+    <script src="./script.js"></script>
 
 </body>
 </html>

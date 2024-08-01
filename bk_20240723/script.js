@@ -172,30 +172,21 @@ const app = Vue.createApp({
 
             maxDarkness: 0.5,
 
+            drawingCardXCoordinate: 0,
+            drawingCardYCoordinate: 0,
+            drawingCardFlippingDeg: 0,
+
+            drawingCardXCoordinate: 0,
+            drawingCardYCoordinate: 0,
+            drawingCardWidth: 0,
+            drawingCardRotation: 0,
+
             animationSpeed: 600,
 
             aiSpeed: 500,
 
             // ---------------------
             userName: null,
-
-            // ---------------------
-            isDieCast: false,
-            previousRotationX : 0,
-            previousRotationY : 0,
-
-            finalCombinedRotationX: 0,
-            finalCombinedRotationY: 0,
-
-            
-            rotations: {
-                1: 'rotateX(0deg) rotateY(0deg)',
-                2: 'rotateX(0deg) rotateY(-90deg)',
-                3: 'rotateX(0deg) rotateY(90deg)',
-                4: 'rotateX(-90deg) rotateY(0deg)',
-                5: 'rotateX(90deg) rotateY(0deg)',
-                6: 'rotateX(180deg) rotateY(0deg)'
-            },
 
         };
     },
@@ -240,19 +231,16 @@ const app = Vue.createApp({
             return this.deck.filter(card => card.location === 'drawPile');
         },
 
+        drawPileLength() {
+            return this.deck.filter(card => card.location === 'drawPile' && !card.gettingDrawn).length;
+        },
+
 
         trashPile() {
             return this.deck
             .filter(card => card.location === 'trash')
             .sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
         },
-
-        topTrashCard(){
-            if(this.trashPile.length == 0) return false
-            return this.trashPile[this.trashPile.length - 1]
-        },
-
-
         playerHands() {
             return playerName => {
               return this.deck
@@ -306,42 +294,6 @@ const app = Vue.createApp({
 
             return text;
         },
-
-        movingCardLocation() {
-            let style = {
-                transition: `all ${(this.animationSpeed / 1000) - 0.05}s`
-            };
-
-            if (!this.movingCard.hasDestination) {
-                style = {
-                    ...style,
-                    left: this.movingCard.currentX + 'px',
-                    top: this.movingCard.currentY + 'px',
-                    width: this.movingCard.width + 'px',
-                    height: this.movingCard.height + 'px',
-                    transform: `rotate(${this.movingCard.rotation}deg)`,
-                };
-            } else {
-                style = {
-                    ...style,
-                    left: this.movingCard.finalX + 'px',
-                    top: this.movingCard.finalY + 'px',
-                    width: this.movingCard.finalWidth + 'px',
-                    transform: `rotate(${this.movingCard.finalRotation}deg)`,
-                };
-            }
-
-            return style;
-        },
-
-        
-        diceTransform() {
-            return {
-                transform: `translateX(-50%) translateY(-50%) rotateX(${this.finalCombinedRotationX}deg) rotateY(${this.finalCombinedRotationY}deg)`
-            };
-        }
-
-        
 
     },
     watch: {
@@ -398,8 +350,7 @@ const app = Vue.createApp({
         },
         addPlayer() {
             const randomName = this.getRandomName();
-            this.players.push({ name: randomName, isAI: true  });
-            // this.players.push({ name: randomName});
+            this.players.push({ name: randomName });
         },
         removePlayer(index) {
             this.players.splice(index, 1);
@@ -551,33 +502,19 @@ const app = Vue.createApp({
         
             if (card.picked) {
                 style.transform += ' translateY(-25%)';
-                style.zIndex = 100;
+                style.zIndex = 100
             }
 
             
 
             if(card.usingCard){
-                style.left =  '5%'
-                style.transform = `translateY(-50%)`
+                style.left =  '10%'
+                style.transform = 'unset'
                 style.zIndex = 20
-                style.animation = 'unset';
             }
             
         
             return style;
-        },
-        validFoodCardCheck(card){
-            if(this.currentPlayer !== this.yourPlayer) return
-            if(!this.yourPlayer.hasDrawn) return
-            if(card.type == 'food') {
-                const kingFood1 = this.food[this.yourPlayer.king.foodRequirements[0]].name
-                const kingFood2 = this.food[this.yourPlayer.king.foodRequirements[1]].name
-
-                if(card.name == kingFood1 || card.name == kingFood2) return true
-
-                return false
-                
-            }
         },
 
         async drawCard(){
@@ -593,9 +530,8 @@ const app = Vue.createApp({
             this.currentPlayer.isRevealing = true
 
             // Set initial position
-            const drawPileElement = document.querySelector('#drawPileBase .gameCard');
-
-            const startPos = drawPileElement.getBoundingClientRect();
+            const drawPileElement = this.$el.querySelector('#drawPileBase .gameCard');
+            const startPos = this.getFixedPosition(drawPileElement);
             this.drawingCardXCoordinate = startPos.left;
             this.drawingCardYCoordinate = startPos.top;
 
@@ -609,24 +545,22 @@ const app = Vue.createApp({
             if(this.currentPlayer == this.yourPlayer){
                 this.drawingCard.drawingCardFlippingDeg = 180
     
-                handsContainerElement = document.querySelector('.hands-container');
+                handsContainerElement = this.$el.querySelector('.hands-container');
                 const rect = handsContainerElement.getBoundingClientRect();
                 const destinationCardWidth = handsContainerElement.querySelector('.gameCard').offsetWidth
-
-                const cardRect = handsContainerElement.querySelector('.gameCard').getBoundingClientRect();
     
                 this.drawingCard.currentX = rect.right - destinationCardWidth
-                this.drawingCard.currentY = cardRect.top
+                this.drawingCard.currentY = rect.top
                 this.drawingCard.width = destinationCardWidth
             }else if(this.currentPlayer !== this.yourPlayer){
     
-                landingContainerElemenet = document.querySelector(`#player-${this.currentPlayer.name} .king-img`);
+                landingContainerElemenet = this.$el.querySelector(`#player-${this.currentPlayer.name}`);
                 const rect = landingContainerElemenet.getBoundingClientRect();
-                const destinationContainerWidth = landingContainerElemenet.offsetWidth
-                const destinationContainerHeight = landingContainerElemenet.offsetHeight
+                const destinationCardWidth = landingContainerElemenet.offsetWidth
+                const destinationCardHeight = landingContainerElemenet.offsetHeight
     
-                this.drawingCard.currentX = rect.left + (destinationContainerWidth /2)
-                this.drawingCard.currentY = rect.top + (destinationContainerHeight /2)
+                this.drawingCard.currentX = rect.left + (destinationCardWidth /2)
+                this.drawingCard.currentY = rect.top + (destinationCardHeight /2)
                 this.drawingCard.width = 0
             }
 
@@ -634,78 +568,78 @@ const app = Vue.createApp({
 
             this.drawingCard.gettingDrawn = false
             this.drawingCard.updatedAt = Date.now()
-            // await this.sleep(40000)
             this.drawingCard.location = this.currentPlayer.name
-            this.yourPlayer.hasUsedEcard = false
             
         },
         getFixedPosition(element) {
             const rect = element.getBoundingClientRect();
             return {
                 top: rect.top,
-                left: rect.left,
+                left: rect.left
+            };
+        },
+        getMovingStyle() {
+            return {
+                position: 'fixed',
+                top: `${this.drawingCardYCoordinate}px`,
+                left: `${this.drawingCardXCoordinate}px`,
+                transform: `rotateY(-${this.drawingCardFlippingDeg}deg)`,
+                zIndex: 100,
+                transition: `all ${this.animationSpeed/1000 - .05}s`
             };
         },
 
-        async trashCard(card,notSkipping,activeCard){
+        async trashCard(card){
 
             const tempCard = card ?? this.pickedCard;
-            tempCard.location = 'moving'
             
-            this.movingCard.hasDestination = false
+            const verticalPosition = (Math.random() * 33 + 2);
+            const horizontalPosition = (Math.random() * 38 + 2);
+            
+            tempCard.trashLocationX = horizontalPosition
+            tempCard.trashLocationY = verticalPosition
+            
+            const maxDeg = 15;
+            tempCard.rotation = 0
 
+
+            tempCard.location = 'moving'
             this.movingCard.setUpBy = this.currentPlayer
-            tempCard.trashLocationX = Math.random() * 38 + 2
-            tempCard.trashLocationY = Math.random() * 33 + 2
-            
-            const maxDeg = 20;
-            this.movingCard.rotation = 0
-            
-            if(activeCard || this.movingCard.setUpBy.name == this.yourPlayer.name){
-                const cardElement = document.querySelector(`#card-${tempCard.id}`)
-                const startPos = cardElement.getBoundingClientRect()
+
+            if(this.movingCard.setUpBy == this.yourPlayer){
+                const cardElement = this.$el.querySelector(`#card-${tempCard.id}`)
+                const startPos = this.getFixedPosition(cardElement);
     
                 this.movingCard.currentX = startPos.left
                 this.movingCard.currentY = startPos.top
 
-                handsContainerElement = document.querySelector('.hands-container');
+                handsContainerElement = this.$el.querySelector('.hands-container');
                 const destinationCardWidth = handsContainerElement.querySelector('.gameCard').offsetWidth
                 this.movingCard.width = destinationCardWidth
             }else {
                 this.movingCard.width = 0
 
-                const playerContainer = document.querySelector(`#player-${this.movingCard.setUpBy.name} .king-img`);
+                const playerContainer = this.$el.querySelector(`#player-${this.movingCard.setUpBy.name}`);
                 const rect = playerContainer.getBoundingClientRect();
                 const destinationCardWidth = playerContainer.offsetWidth
                 const destinationCardHeight = playerContainer.offsetHeight
 
                 this.movingCard.currentX = rect.left + (destinationCardWidth /2)
                 this.movingCard.currentY = rect.top + (destinationCardHeight /2)
-
-                
-                await this.sleep(1)
-                this.movingCard.width = 100 * .7;
-
-                this.movingCard.currentX = rect.left + (rect.width/2) - (this.movingCard.width /2)
-                this.movingCard.currentY = rect.top + (rect.height/2) - (this.movingCard.width * 1.3 /2)
             }
 
-            
+            await this.sleep(250)
 
-            landingContainerElemenet = document.querySelector(`.trash-area`);
+            landingContainerElemenet = this.$el.querySelector(`.trash-area`);
             const rect = landingContainerElemenet.getBoundingClientRect();
             const destinationCardWidth = landingContainerElemenet.offsetWidth
             const destinationCardHeight = landingContainerElemenet.offsetHeight
 
-            this.movingCard.finalX = rect.left + (destinationCardWidth * (this.movingCard.trashLocationX / 100))
-            this.movingCard.finalY = rect.top + (destinationCardHeight * (this.movingCard.trashLocationY / 100))
-            this.movingCard.finalRotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
-            this.movingCard.finalWidth = 100 * .7;
+            this.movingCard.currentX = rect.left + (destinationCardWidth * (this.movingCard.trashLocationX / 100))
+            this.movingCard.currentY = rect.top + (destinationCardHeight * (this.movingCard.trashLocationY / 100))
+            this.movingCard.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+            this.movingCard.width = 100 * .7;
             this.movingCard.updatedAt = Date.now();
-
-            await this.sleep(250)
-
-            this.movingCard.hasDestination = true
 
             await this.sleep(650)
 
@@ -722,10 +656,51 @@ const app = Vue.createApp({
 
             
             await this.sleep(this.aiSpeed)
-            
-            if(!notSkipping) this.goToNextPlayer()
+            this.goToNextPlayer()
 
 
+        },
+        getMovingLocation(){
+            this.drawPileBase = this.$el.querySelector('#drawPileBase');
+            this.gameCardContainer = this.$el.querySelector('.gameCard-container');
+            this.gameCard = this.gameCardContainer.querySelector('.gameCard:last-child');
+
+            this.calculateStyles(this.drawPileBase);
+
+            if (!this.isAnimating) {
+                this.isAnimating = true;
+                setTimeout(() => {
+                  this.isAnimating = false;
+                }, this,animationSpeed);
+                return this.calculateStyles(this.drawPileBase);
+              } else {
+                return this.calculateStyles(this.gameCard);
+            }
+        },
+        getdrawingCardLocation(){
+            return {
+                position: 'fixed',
+                ...this.parsePosition(this.drawingCardYCoordinate),
+                ...this.parsePosition(this.drawingCardXCoordinate),
+                width: this.drawingCardWidth + 'px',
+                transform: 'rotate(' + this.drawingCardRotation + 'deg)',
+                zIndex: 100,
+                transition: `all ${this.animationSpeed / 1000 + .25}s`
+            };
+        },
+        parsePosition(position) {
+            const [property, value] = position.split(': ');
+            return { [property]: value };
+        },
+
+        calculateStyles(element) {
+            const rect = element.getBoundingClientRect();
+            return {
+                position: 'fixed',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                transition: 'all 0.5s'
+            };
         },
 
         // =========================================
@@ -734,13 +709,11 @@ const app = Vue.createApp({
             this.currentPlayer.isRevealing = false
             this.currentPlayer.hasDrawn = false
             this.currentPlayer.hasMadeMove = false
-            this.currentPlayer.hasUsedEcard = false
-
-            if(this.movingCard) this.movingCard.location = null
 
             for(let card of this.deck){
                 card.picked = false
                 card.usingCard = false
+                card.isMoving = false
             }
 
             if(this.playerHands(this.currentPlayer.name).length !== 5){
@@ -757,6 +730,67 @@ const app = Vue.createApp({
 
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
             if(this.currentPlayer.isAI) this.aiMove()
+        },
+        getClass(baby) {
+            let className = 'baby-img-container';
+            if (baby.foodArray.length == 2) {
+                className = 'baby-grown-img-container';
+            }
+            return className;
+        },
+        getBackgroundColor(card){
+            let color
+
+            switch(card.type){
+                case  'food' : 
+                    color = 'HotPink';
+                    break;
+
+                case  'energy' : 
+                    color = 'yellow';
+                    break;
+
+                case  'obstacle' : 
+                    color = 'Chocolate';
+                    break;
+            
+                default :
+                    color = 'black';
+                    break;
+            }
+
+            return { backgroundColor: color };
+
+        },
+        calculateCardPosition(index, totalCards, card) {
+            if(card.usingCard){
+                return {
+                    left: '10%',
+                    zIndex: 20,
+                };
+            }
+            const percentage = (100 / (totalCards - 1)) * index;
+
+            let topPosition = 0
+            let zIndex = 0
+            if(card?.picked){
+                topPosition = -30
+                zIndex = 1
+            }
+
+            return {
+                top: `${topPosition}%`,
+                left: `${percentage}%`,
+                transform: `translateX(-${percentage}%)`,
+                zIndex,
+            };
+        },
+        getTrashPosition(card,index) {
+            return `
+                transform: rotate(${card?.rotation}deg); 
+                ${card.verticalPosition};
+                ${card.horizontalPosition};
+            `;
         },
 
         buttonCheck(action) {
@@ -788,20 +822,23 @@ const app = Vue.createApp({
                     return false
                 }
 
-                if(this.pickedCard.type !== "food") {
-                    if(this.yourPlayer.hasUsedEcard) return false
-                }
-
 
                 return true
             }
 
+            if (action === 'goToNext') {
+                return this.currentPlayer?.hasMadeMove && this.playerHands(this.currentPlayer.name).length == 5;
+            }
+
             if(action === 'buttons'){
-                if(this.currentPlayer !== this.yourPlayer) return false
-                if(this.movingCard) return false
                 if(!this.currentPlayer.hasDrawn) return false
                 if(this.drawingCard) return false
-                if(this.currentPlayer.hasMadeMove) return false
+                if(this.currentPlayer.isAI) return false
+
+                if(this.currentPlayer.hasMadeMove) return true
+
+                if(this.activeCard) return false
+
 
                 if(this.pickedCard) return true
             }
@@ -811,7 +848,6 @@ const app = Vue.createApp({
         pickCard(card){
             if(this.currentPlayer !== this.yourPlayer) return
             if(!this.currentPlayer.hasDrawn) return
-            if(this.movingCard) return
             if(card.picked) {
                 card.picked = false 
                 card.usingCard = false 
@@ -838,211 +874,173 @@ const app = Vue.createApp({
         },
 
         
-        retriveCheck(){
-            if(!this.topTrashCard) false
-            if(this.topTrashCard?.type !== 'food') return false
 
-            return true
-        },
-        async retriveFood(){
+        async retriveFood(card){
             if(this.activeCard?.type !== 'energy') return
 
-            await this.trashCard(this.activeCard,true)
+            await this.trashCard(this.activeCard)
 
-            let tempCard = this.trashPile[this.trashPile.length - 2]
-            
-            const rectTempCard = document.querySelector(`#card-${tempCard.id}`).getBoundingClientRect();
-            const tempCardRotation = tempCard.rotation
 
             
-            await this.sleep(500)
+            card.updatedAt = Date.now()
+            card.location = this.currentPlayer.name
+            card.isMoving = true
 
-            tempCard.location = 'moving'
-            this.movingCard.updatedAt = Date.now()
-            this.hasDestination = false
-
-            
-            this.movingCard.currentX = `left: ${rectTempCard.left}px`;
-            this.movingCard.currentY = `top: ${rectTempCard.top}px`;
-            this.movingCard.width = rectTempCard.width;
-            this.movingCard.rotation = tempCardRotation;
+            const startPos = this.getFixedPosition(this.$el.querySelector(`#foot-trash-${card.name}`));
+            this.drawingCardYCoordinate = `top: ${startPos.top}px`;
+            this.drawingCardXCoordinate = `left: ${startPos.left}px`;
+            this.drawingCardWidth = 50 -2;
 
             // ----------------
 
             // const finalWidth = 0
             // const finalHeight = finalWidth * 1.33
-
-
-            await this.sleep(10)
-
-            if(this.currentPlayer == this.yourPlayer){
-    
-                handsContainerElement = document.querySelector('.hands-container');
-                const rect = handsContainerElement.getBoundingClientRect();
-                const destinationCardWidth = handsContainerElement.querySelector('.gameCard').offsetWidth
-
-                const cardRect = handsContainerElement.querySelector('.gameCard').getBoundingClientRect();
-    
-                this.movingCard.finalX = rect.right - destinationCardWidth
-                this.movingCard.finalY = cardRect.top
-                this.movingCard.finalWidth = destinationCardWidth
-                this.movingCard.finalRotation = 0
-            }else{
-                const playerContainer = document.querySelector(`#player-${this.currentPlayer.name} .king-img`);
-                const rect = playerContainer.getBoundingClientRect();
-                const destinationCardWidth = playerContainer.offsetWidth
-                const destinationCardHeight = playerContainer.offsetHeight
-
-                this.movingCard.finalX = rect.left + (destinationCardWidth /2)
-                this.movingCard.finalY = rect.top + (destinationCardHeight /2)
-                this.movingCard.finalWidth = 0;
-                this.movingCard.finalRotation = 0
-            }
-
-            await this.sleep(750)
-
-            this.movingCard.hasDestination = true
             
-            this.movingCard.location = this.currentPlayer.name
-            this.yourPlayer.hasUsedEcard = true
-            await this.sleep(250)
-            this.currentPlayer.hasMadeMove = false
+            this.drawingCardRotation = 0
+            await this.sleep(100)
 
+            const currentFinalCard = this.playerHands(this.currentPlayer.name)[this.playerHands(this.currentPlayer.name).length -2]
             
+            const endPosElement = this.$el.querySelector(`#card-${currentFinalCard.id}`);
+    
+            const rect = endPosElement.getBoundingClientRect();
+            this.drawingCardYCoordinate = `top: ${rect.top}px`;
+            this.drawingCardXCoordinate = `left: ${rect.left}px`;
 
+            this.drawingCardWidth = rect.width -2
+
+            await this.sleep(this.animationSpeed + 250)
+
+            card.isMoving = false
         },
 
         async interactBaby(baby,player,babyIndex){
             if(this.gameStatus !== 'distributed') return
-            if(player !== this.currentPlayer) return
+            if(this.currentPlayer.name !== player.name) return
 
             
 
             if(this.activeCard?.type == 'food') {
                 if(baby.isBlocked) return
                 if(baby.foodArray.length >= 2) return
-                if(this.movingCard)  return
 
-                this.activeCard.location = 'moving'
-                this.movingCard.hasDestination = false
-                this.movingCard.setUpBy = this.currentPlayer
+                this.activeCard.isMoving = true
+                const startPos = this.getFixedPosition(this.$el.querySelector(`#card-${this.activeCard.id}`));
+                this.drawingCardYCoordinate = `top: ${startPos.top}px`;
+                this.drawingCardXCoordinate = `left: ${startPos.left}px`;
+                this.drawingCardWidth = this.$el.querySelector(`#card-${this.activeCard.id}`).offsetWidth -2;
 
-                if(this.movingCard.setUpBy == this.yourPlayer){
-                    const cardElement = document.querySelector(`#card-${this.activeCard.id}`)
-                    const startPos = cardElement.getBoundingClientRect();
-        
-                    this.movingCard.currentX = startPos.left
-                    this.movingCard.currentY = startPos.top
+                // ----------------
 
-                    handsContainerElement = document.querySelector('.hands-container');
-                    const destinationCardWidth = handsContainerElement.querySelector('.gameCard').offsetWidth
-                    this.movingCard.width = destinationCardWidth
-                }else {
-                    this.movingCard.width = 0
+                // const finalWidth = 0
+                // const finalHeight = finalWidth * 1.33
+                
+                this.drawingCardRotation = 0
+                await this.sleep(100)
 
-                    const playerContainer = document.querySelector(`#player-${this.movingCard.setUpBy.name} .king-img`);
-                    const rect = playerContainer.getBoundingClientRect();
-                    const destinationCardWidth = playerContainer.offsetWidth
-                    const destinationCardHeight = playerContainer.offsetHeight
-
-                    this.movingCard.currentX = rect.left + (destinationCardWidth /2)
-                    this.movingCard.currentY = rect.top + (destinationCardHeight /2)
-
-                    await this.sleep(1)
-                    this.movingCard.width = 100 * .7;
-
-                    this.movingCard.currentX = rect.left + (rect.width/2) - (this.movingCard.width /2)
-                    this.movingCard.currentY = rect.top + (rect.height/2) - (this.movingCard.width * 1.3 /2)
-                }
-
-                const endPosElement = document.querySelector(`#${this.currentPlayer.name}-baby-${babyIndex} img`);
+                const endPosElement = this.$el.querySelector(`#${this.currentPlayer.name}-baby-${babyIndex}`);
         
                 const rect = endPosElement.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                this.movingCard.finalX = `${centerX}`;
-                this.movingCard.finalY = `${centerY}`;
-                
-                this.movingCard.finalWidth = 0
+                this.drawingCardYCoordinate = `top: ${centerY}px`;
+                this.drawingCardXCoordinate = `left: ${centerX}px`;
 
-                await this.sleep(250)
+                this.drawingCardWidth = 0
 
-                this.movingCard.hasDestination = true
-
-                
-
-                await this.sleep(this.animationSpeed - 50)
+                await this.sleep(this.animationSpeed + 250)
                 
                 
                 baby.foodArray.push(this.activeCard)
                 this.currentPlayer.hasMadeMove = true
                 
+                this.activeCard.isMoving = false
                 this.activeCard.usingCard = false
                 this.pickedCard.pickCard = false
                 this.pickedCard.location = null
-
-                await this.sleep(750)
-
-                this.goToNextPlayer()
+                
             }
 
- 
+
             if(this.activeCard?.type == 'able') {
-                if(!baby.isBlocked) return
+                if(!baby.isBlocked) return 
 
-                this.activeCard.location = 'moving'
-                this.movingCard.hasDestination = false
-                this.movingCard.setUpBy = this.currentPlayer
+                card = baby.isBlocked
 
-                if(this.movingCard.setUpBy == this.yourPlayer){
-                    const cardElement = document.querySelector(`#card-${this.activeCard.id}`)
-                    const startPos = cardElement.getBoundingClientRect();
-        
-                    this.movingCard.currentX = startPos.left
-                    this.movingCard.currentY = startPos.top
-
-                    handsContainerElement = document.querySelector('.hands-container');
-                    const destinationCardWidth = handsContainerElement.querySelector('.gameCard').offsetWidth
-                    this.movingCard.width = destinationCardWidth
-                }else {
-                    this.movingCard.width = 0
-
-                    const playerContainer = document.querySelector(`#player-${this.movingCard.setUpBy.name} .king-img`);
-                    const rect = playerContainer.getBoundingClientRect();
-                    const destinationCardWidth = playerContainer.offsetWidth
-                    const destinationCardHeight = playerContainer.offsetHeight
-
-                    this.movingCard.currentX = rect.left + (destinationCardWidth /2)
-                    this.movingCard.currentY = rect.top + (destinationCardHeight /2)
-
-                    await this.sleep(1)
-                    this.movingCard.width = 100 * .7;
-
-                    this.movingCard.currentX = rect.left + (rect.width/2) - (this.movingCard.width /2)
-                    this.movingCard.currentY = rect.top + (rect.height/2) - (this.movingCard.width * 1.3 /2)
-                }
-
-                const endPosElement = document.querySelector(`#${this.currentPlayer.name}-baby-${babyIndex} img`);
-        
-                const rect = endPosElement.getBoundingClientRect();
-                this.movingCard.finalWidth = 15;
-                this.movingCard.finalX = rect.left + rect.width / 2 - (this.movingCard.finalWidth/2);
-                this.movingCard.finalY = rect.top + rect.height / 2 - ((this.movingCard.finalWidth/2) * (3/4));
-
+                const startPos = this.getFixedPosition(this.$el.querySelector(`#card-${card.id}`));
+                this.drawingCardYCoordinate = `top: ${startPos.top}px`;
+                this.drawingCardXCoordinate = `left: ${startPos.left}px`;
+                this.drawingCardWidth = this.$el.querySelector(`#card-${card.id}`).offsetWidth -2;
+                this.drawingCardRotation = 0;
+                const ogSpeed = this.animationSpeed
+                this.animationSpeed = -250
                 await this.sleep(500)
 
-                this.movingCard.hasDestination = true
+                card.isMoving = true
 
+                await this.sleep(0)
+                // this.animationSpeed = ogSpeed
+
+                // await this.sleep(this.animationSpeed)
+
+
+                const finalWidth = 50
+                const finalHeight = finalWidth * 1.33
+
+                // ----------
+
+
+
+                const verticalPosition = (Math.random() * 45);
+                const horizontalPosition = (Math.random() * 46);
+
+                const vert = Math.random() < 0.05 ? 'top' : 'bottom'
+                const horizon = Math.random() < 0.5 ? 'left' : 'right'
                 
+                card.verticalPosition = `${vert}: ${verticalPosition}%`;
+                card.horizontalPosition = `${horizon}: ${horizontalPosition}%`;
+                
+                const maxDeg = 45;
+                card.rotation = Math.round(Math.random() * maxDeg - (maxDeg / 2));
+                // ----------------------
+                this.drawingCardRotation = card.rotation
 
-                await this.sleep(750)
+                const trashContainer = this.$el.querySelector('.trash-area');
+                const rect = trashContainer.getBoundingClientRect();
+                const width = rect.width;
+                const height = rect.height;
+                const top = rect.top;
+                const left = rect.left;
+
+                let tempXcordinate = horizon == 'left' 
+                ?  left + width * (horizontalPosition / 100)
+                : left + width -(width * (horizontalPosition / 100))  - finalWidth - 2
+
+                let tempYcordinate = vert == 'top' 
+                ?  top + height * (verticalPosition / 100) 
+                : top + height -(height * (verticalPosition / 100)) - finalHeight -2
+
+                this.drawingCardXCoordinate = `left: ${tempXcordinate}px`;
+                this.drawingCardYCoordinate = `top: ${tempYcordinate}px`;
+
+                this.animationSpeed = ogSpeed
+                await this.sleep(this.animationSpeed + 250)
+                card.isMoving = false
+
+                // ----------
+
+
+                // await this.trashCard(card)
+                card.location = 'trash'
+                card.updatedAt = Date.now();
+
                 baby.isBlocked = false
+    
+                // this.pickedCard.usingCard = false
+                // this.pickedCard.pickCard = false
 
-
-
-                await this.trashCard(this.movingCard,false,true)
-
-
+                await this.trashCard(this.pickedCard)
+    
                 this.currentPlayer.hasMadeMove = true
             }
 
@@ -1056,163 +1054,87 @@ const app = Vue.createApp({
                 const randomIndex = Math.floor(Math.random() * this.players.length);
                 this.chosenPlayer = this.players[randomIndex];
             }else{
-                // this.drawingCardYCoordinate = `top: ${startPos.top}px`;
-                // this.drawingCardXCoordinate = `left: ${startPos.left}px`;
-                // this.drawingCardWidth = document.querySelector(`#card-${this.activeCard.id}`).offsetWidth -2;
-                this.activeCard.location = 'moving'
-                this.activeCard.hasDestination = false
-
-                
-                let startPos
-                if(this.currentPlayer == this.yourPlayer){
-                    startPos = document.querySelector(`#card-${this.activeCard.id}`).getBoundingClientRect();
-                    
-                    this.movingCard.currentY = startPos.top
-                    this.movingCard.currentX = startPos.left
-                    this.movingCard.width = startPos.width
-                }else{
-
-                    startPos = document.querySelector(`#player-${this.currentPlayer.name} .king-img`).getBoundingClientRect();
-
-                    this.movingCard.width = 0
-                    this.movingCard.currentY = startPos.top + (startPos.height/2)
-                    this.movingCard.currentX = startPos.left + (startPos.width/2)
-
-                    await this.sleep(10)
-                }
-
-
-                // ----------------------------------------
-                const endPos = document.querySelector('#drawPileBase .gameCard').getBoundingClientRect();
-
-
-                this.movingCard.finalY = endPos.top
-                this.movingCard.finalX = endPos.left
-                this.movingCard.finalWidth = endPos.width / 4
-                // this.movingCard.finalWidth = 25
-
-                await this.sleep(500)
-                this.activeCard.hasDestination = true
-
-                await this.sleep(500)
+                this.activeCard.isMoving = true
+                const startPos = this.getFixedPosition(this.$el.querySelector(`#card-${this.activeCard.id}`));
+                this.drawingCardYCoordinate = `top: ${startPos.top}px`;
+                this.drawingCardXCoordinate = `left: ${startPos.left}px`;
+                this.drawingCardWidth = this.$el.querySelector(`#card-${this.activeCard.id}`).offsetWidth -2;
+                this.drawingCardRotation = 0
     
-                let tempPlayerIndex = await this.rollDice()
+                // const totalRounds = Math.floor(Math.random() * 20) + 30; // Random total iterations between 30 and 50
+                const totalRounds = Math.floor(Math.random() * 6) + 12; // Random total iterations between 30 and 50
+                const startInterval = Math.random() * 10 + 20; // Random start interval between 20 and 30 ms
+                const endInterval = 200; // End interval in milliseconds
+                let tempPlayerIndex = this.currentPlayerIndex; // Use a temporary index for the roulette effect
+    
+               
+    
+                for (let i = 0; i < totalRounds; i++) {
+                    tempPlayerIndex = (tempPlayerIndex + 1) % this.players.length;
+                    this.chosenPlayer = this.players[tempPlayerIndex];
+    
+                    const progress = i / totalRounds;
+                    const interval = startInterval + (endInterval - startInterval) * progress; // Linear easing
+                    await this.sleep(interval);
+                }
+    
                 // Ensure the final chosenPlayer is selected after the loop
                 this.chosenPlayer = this.players[tempPlayerIndex];
                 await this.sleep(this.animationSpeed)
-
             }
+
+
 
             let blockFlag = false
             let babyCount = 0
             let babyTarget
-
-            if(this.chosenPlayer){
-                for (let baby of this.chosenPlayer.babies) {
-                    if (!baby.isBlocked && baby.foodArray.length !== 2) {
-                        babyTarget = baby
-                      blockFlag = true
-                      break; // Exit the loop after finding the first unblocked baby
-                    }
-    
-                    babyCount++
+            for (let baby of this.chosenPlayer.babies) {
+                if (!baby.isBlocked && baby.foodArray.length == 0) {
+                    babyTarget = baby
+                  blockFlag = true
+                  break; // Exit the loop after finding the first unblocked baby
                 }
-                
+
+                babyCount++
             }
-    
-            if(blockFlag) { 
+
+            if(blockFlag) {
+                
+
+                const finalWidth = 50
+                const finalHeight = finalWidth * 1.33
+                
+                this.drawingCardRotation = 0
                 await this.sleep(100)
 
-                const endPosElement = document.querySelector(`#${this.chosenPlayer.name}-baby-${babyCount} img`);
+                const endPosElement = this.$el.querySelector(`#${this.chosenPlayer.name}-baby-${babyCount}`);
         
                 const rect = endPosElement.getBoundingClientRect();
-                
-                this.movingCard.finalX = rect.left + (rect.width /2)
-                this.movingCard.finalY = rect.top + (rect.height /2)
-                this.movingCard.finalWidth = 0
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                this.drawingCardYCoordinate = `top: ${centerY - (finalHeight/2)}px`;
+                this.drawingCardXCoordinate = `left: ${centerX - (finalWidth/2)}px`;
+
+                this.drawingCardWidth = 50
 
                 if(mode == 'fast'){
                     await this.sleep(100)
                 }else{
-                    await this.sleep(this.animationSpeed)
+                    await this.sleep(this.animationSpeed + 500)
                 }
                 
-                babyTarget.isBlocked = true;
-            }else{
-                await this.trashCard(this.movingCard,true,true)
-
-                this.currentPlayer.hasMadeMove = true
-                this.chosenPlayer = null
-                await this.sleep(this.animationSpeed)
-                await this.goToNextPlayer();
-
-                return
-            
+                babyTarget.isBlocked = this.activeCard;
+                this.pickedCard.location = null
             }
-
-
-            // this.pickedCard.location = null
-
+            this.activeCard.isMoving = false
+            
             this.activeCard.usingCard = false
             this.pickedCard.pickCard = false
             
-            this.currentPlayer.hasMadeMove = true
-            this.chosenPlayer = null
             await this.sleep(this.animationSpeed)
+            this.chosenPlayer = null
 
-            await this.goToNextPlayer();
-        },
-
-        async rollDice() {
-            this.isDieCast = true
-            await this.sleep(250)
-            const diceOne = Math.floor((Math.random() * 6) + 1);
-            // const diceOne = 5
-            // let diceOne
-            // let count = 0
-            // for(let i in this.players){
-            //     let tempPlayer = this.players[i]
-            //     if(tempPlayer == this.yourPlayer) {
-            //         diceOne = count+1
-            //         break;
-            //     }
-
-            //     count++
-
-            // }
-            const minRotationDifference = 720; // Minimum rotation difference to ensure a noticeable roll
-            const randomX = (Math.floor(Math.random() * 5)+ 5) * 360; // Random multiple of 90 degrees
-            const randomY = (Math.floor(Math.random() * 5)+ 5) * 360; // Random multiple of 90 degrees
-
-            // Ensure the rotation is more than 360 degrees from the previous result
-            const finalRotation = this.rotations[diceOne];
-            const finalRotationX = parseInt(finalRotation.match(/rotateX\((-?\d+)deg\)/)[1]);
-            const finalRotationY = parseInt(finalRotation.match(/rotateY\((-?\d+)deg\)/)[1]);
-
-            // Combine initial random rotations with final rotations
-            let combinedRotationX = randomX + finalRotationX;
-            let combinedRotationY = randomY + finalRotationY;
-
-            // Ensure the new rotations differ by at least 360 degrees
-            if (Math.abs(combinedRotationX - this.previousRotationX) < minRotationDifference) {
-                combinedRotationX += minRotationDifference;
-            }
-            if (Math.abs(combinedRotationY - this.previousRotationY) < minRotationDifference) {
-              combinedRotationY += minRotationDifference;
-            }
-
-            this.finalCombinedRotationX = combinedRotationX
-            this.finalCombinedRotationY = combinedRotationY
-
-            await this.sleep(4000)
-
-            this.isDieCast = false
-
-            // Store the current rotation values for the next roll
-            this.previousRotationX = this.finalCombinedRotationX;
-            this.previousRotationY = this.finalCombinedRotationY;
-
-            return diceOne -1
+            this.currentPlayer.hasMadeMove = true
         },
 
         async aiMove(){
@@ -1221,48 +1143,85 @@ const app = Vue.createApp({
 
             let hasAutomated = false;
             
+            console.log(this.playerHands(this.currentPlayer.name))
 
             await this.sleep(this.aiSpeed)
 
-            
-            
+            // just for now
+            // simple trash autoamtion
+            if(!hasAutomated){
+                this.playerHands(this.currentPlayer.name)[0].picked = true
 
-            // eCard automation
-            if(!this.currentPlayer.hasUsedEcard && this.retriveCheck()){
+                console.log(`trash Automation`)
+                await this.trashCard()
+                hasAutomated = true
+                return;
+           }
+
+            // feeding Automation
+            if(!hasAutomated){
                 for(let card of this.playerHands(this.currentPlayer.name)){
-                    if(card.type == 'energy') {
-                        if(this.food[this.currentPlayer.king.foodRequirements[0]].name == this.topTrashCard?.name || this.food[this.currentPlayer.king.foodRequirements[1]].name == this.topTrashCard?.name){
-                            card.picked = true
-                            this.useCard()
-                            await this.retriveFood()
-                            return  this.aiMove()
+                    if(card.type == 'food') {
+                        if(this.food[this.currentPlayer.king.foodRequirements[0]].name == card.name || this.food[this.currentPlayer.king.foodRequirements[1]].name == card.name){
+                            // await this.sleep(500)
+                            let count = 0
+                            for(let baby of this.currentPlayer.babies){
+                                if(!baby.isBlocked && baby.foodArray?.length < 2 && !hasAutomated){
+                                    card.picked = true
+                                    await this.sleep(this.aiSpeed)
+                                    this.useCard()
+                                    await this.interactBaby(baby,this.currentPlayer,count)
+                                    hasAutomated = true
+    
+                                    console.log(`feeding Automation`)
+                                    break;
+                                }
+                                count++
+                            }
                         }
-                        
-                        break;
+    
+    
                     }
                 }
             }
 
-            
-            // feeding Automation
-            for(let card of this.playerHands(this.currentPlayer.name)){
-                if(card.type == 'food') {
-                    if(this.food[this.currentPlayer.king.foodRequirements[0]].name == card.name || this.food[this.currentPlayer.king.foodRequirements[1]].name == card.name){
-                        let count = 0
-                        for(let baby of this.currentPlayer.babies){
-                            if(!baby.isBlocked && baby.foodArray?.length < 2 && !hasAutomated){
+            // eCard automation
+            if(!hasAutomated){
+                
+                for(let card of this.playerHands(this.currentPlayer.name)){
+                    if(card.type == 'energy') {
+                        for(let trashCard of this.deck){
+                            if(trashCard.location == 'trash' && trashCard.type == 'food' && (this.food[this.currentPlayer.king.foodRequirements[0]].name == trashCard.name || this.food[this.currentPlayer.king.foodRequirements[1]].name == trashCard.name)){
+
                                 card.picked = true
                                 this.useCard()
-                                await this.interactBaby(baby,this.currentPlayer,count)
-                                hasAutomated = true
+                                await this.retriveFood(trashCard)
+
+                                let count = 0
+                                for(let baby of this.currentPlayer.babies){
+                                    if(!baby.isBlocked && baby.foodArray?.length < 2 && !hasAutomated){
+                                        trashCard.picked = true
+                                        await this.sleep(this.aiSpeed)
+                                        this.useCard()
+                                        await this.interactBaby(baby,this.currentPlayer,count)
+                                        hasAutomated = true
+
+                                        console.log(`ecard Automation`)
+                                        break;
+                                    }
+                                    count++
+                                }
                                 
-                                await this.sleep(this.aiSpeed)
-                                return;
+                                
+                                break
                             }
-                            count++
                         }
+
+
                     }
                 }
+
+
             }
 
             // able card automation
@@ -1279,7 +1238,10 @@ const app = Vue.createApp({
 
                                 await this.interactBaby(baby,this.currentPlayer,count)
 
-                                return;
+                                hasAutomated = true
+
+                                console.log(`able Automation`)
+                                break;
                             }
                             count++
                         }
@@ -1290,39 +1252,51 @@ const app = Vue.createApp({
             }
 
             // obstacle automation
-            for(let card of this.playerHands(this.currentPlayer.name)){
-                if(card.type == 'obstacle') {
-                    card.picked = true;
-                    await this.sleep(this.aiSpeed)
-                    this.useCard()
+            if(!hasAutomated){
+                for(let card of this.playerHands(this.currentPlayer.name)){
+                    if(card.type == 'obstacle') {
+                        
 
-                    await this.randomObstacle();
-                    return;
+                        card.picked = true;
+                        await this.sleep(this.aiSpeed)
+                        this.useCard()
+    
+                        await this.randomObstacle()
+                        hasAutomated = true
+                        if(card.location == this.currentPlayer.name) hasAutomated = false
+
+                        console.log(`obstacle automation`)
+                        break;
+                    }
                 }
             }
 
-            
-            // trash any unnecesry card Automation
-            for(let card of this.playerHands(this.currentPlayer.name)){
-                if(card.type == 'food'){
-                    card.picked = true
-                    await this.trashCard()
-                    return;
-                }
+            // trash autoamtion
+            if(!hasAutomated){
+                 for(let card of this.playerHands(this.currentPlayer.name)){
+                     if(card.type == 'food'){
+                         card.picked = true
+                         await this.sleep(this.aiSpeed)
+                         await this.trashCard()
+                         hasAutomated = true
+
+                         console.log(`trash Automation`)
+                         break
+                     }
+                 }
+
+                 if(!hasAutomated){
+                     this.playerHands(this.currentPlayer.name)[0].picked = true
+
+                     console.log(`trash Automation`)
+                     await this.trashCard()
+                 }
             }
 
-            // just trash anything Automation
-            this.playerHands(this.currentPlayer.name)[0].picked = true
-            await this.trashCard()
-            return
             
+            await this.sleep(this.aiSpeed)
+            await this.goToNextPlayer()
         },
-
-        async getDetail(){
-            console.log(this.players)
-            console.log(`--------`)
-            console.log(this.deck)
-        }
         
     },
     async mounted(){
@@ -1335,6 +1309,21 @@ const app = Vue.createApp({
             this.animationSpeed = 500
             this.animationSpeed = 750
         }
+
+
+        
+
+        // if(this.developingMode){
+        //     const ogSpeed = this.animationSpeed
+        //     this.animationSpeed = 10
+        //     for (let i = 0; i < 46; i++) {
+            
+        //         await this.aiMove()
+
+        //     }
+            
+        //     this.animationSpeed = ogSpeed
+        // }
         
     },
 });
@@ -1386,13 +1375,13 @@ app.component('game-card', {
                     <img :src="card?.imgSrc" class="card-front-img">
                 </div>
                 <div class="gameCard-bottom-block" :style="getBackgroundColor(card)">
-                    <span v-if="card.type === 'food'">食べ物</span>
+                    <span v-if="card.type === 'food'">{{ card.type }}</span>
                     <span v-else>{{ card.name }}</span>
                 </div>
             </div>
         </div>
     `
-});  
+});         
 
 
 app.mount('#app');

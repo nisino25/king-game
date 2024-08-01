@@ -5,8 +5,6 @@
 
     --trash-card-width: calc(var(--game-card-width) * .7);
     /* --trash-card-height: calc(var(--trash-card-width) * (4/3)); */
-
-    --dice-width: calc(var(--game-card-width) * .6);
 }
 
 * {
@@ -98,7 +96,7 @@ h2 {
     /* border: 1px solid black;
     border-radius: 15px; */
     display: grid;
-    grid-template-rows: calc(60% - 5px) calc(40% - 5px);
+    grid-template-rows: calc(55% - 5px) calc(45% - 5px);
     align-content: space-between;
     overflow: hidden;
     box-sizing: border-box;
@@ -149,7 +147,7 @@ h2 {
 
 .gameCard .card-back-img,
 .gameCard .card-front{
-    /* border: 1px solid black; */
+    border: 1px solid black;
     border-radius: 8%;
     box-shadow: 4px 4px 2px rgba(0, 0, 0, 0.3);
     
@@ -363,7 +361,7 @@ h2 {
 /* ----------------------------------------------------- */
 
 #gameArea .main-area .main-info .other-trash-area{
-    height: calc(60% - calc(var(--dice-width) /2)) !important;
+    height: calc(60% - 40px) !important;
 
     width: calc(100% - -5px);
     transform: translateX(-25px);
@@ -592,10 +590,10 @@ h2 {
     transform: translate(-50%, 150%);
 
     display: grid;
-    grid-template-columns: repeat(2, 45%);
+    grid-template-columns: repeat(3, 31%);
     justify-content: space-between;
 
-    width: 75%;
+    width: 85%;
     margin: auto;
     z-index: 9;
 
@@ -605,7 +603,7 @@ h2 {
 #gameArea button{
     container-type: inline-size;
     background-color: #FFAC1C; /* Green background */
-    border: 1px solid white;
+    border: none; /* Remove borders */
     color: black; /* White text */
     padding: 2.5px 0;
     text-align: center; /* Center the text */
@@ -630,14 +628,10 @@ h2 {
 }
 
 #gameArea button.disable-button {
-    background-color: #ccc !important; /* Gray background for disabled state */
+    background-color: #ccc; /* Gray background for disabled state */
     color: #666; /* Dark gray text for disabled state */
     cursor: not-allowed; /* Change cursor to not-allowed */
     pointer-events: none; /* Disable all pointer events */
-}
-
-#gameArea button.use-button{
-    background-color: #00AB66;
 }
 
 
@@ -648,11 +642,11 @@ h2 {
     display: block;
     width: calc(100% + 26px);
     /* width: 100%; */
-    height: 115%;
+    height: 130%;
     z-index: 10;
-    bottom: calc(0% - 10px);
+    top: calc(50% + 10px);
     left: calc(50%);
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(-50%);
     transition: opacity .3s ease-in-out;
 }
 
@@ -679,24 +673,22 @@ h2 {
 
     color: white;
     font-weight: bold;
-    font-size: 4.1cqw;
-    width: 45%;
-    height: 65%;
+    font-size: 4.5cqw;
+    width: 50%;
+    height: 80%;
     text-align: center;
 
     z-index: 20;
 
     display: grid;
     align-content: space-between;
-
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .warning-container .warning-bg{
     display: block;
     width: 100%;
     height: 100%;
-    opacity: .65;
+    opacity: .5;
     background: black;
 
     z-index: 15;
@@ -727,7 +719,7 @@ img{
 #gameArea .top-block .other-player-container{
     position: relative;
     display: grid;
-    grid-template-rows: repeat(4, calc(25% - 5px));
+    grid-template-rows: repeat(4, 23%);
     align-content: space-between;
     height: 100%;
 }
@@ -736,7 +728,7 @@ img{
     position: relative;
 
     display: grid;
-    grid-template-columns: calc(55% - 5px) calc(45% - 5px);
+    grid-template-columns: 50% 45%;
     justify-content: space-between;
     align-items: center;
 
@@ -786,14 +778,10 @@ img{
 
     text-wrap: nowrap;
 
-    font-size: .75em;
-
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-
-    line-height: 1;
+    gap: 2px;
 }
 
 .top-block .other-player .babies-container{
@@ -809,42 +797,31 @@ img{
 }
 
 .top-block .other-player .babies-container .baby-item{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+
+    position: relative;
 
     overflow: hidden;
-    display: grid;
-    align-content: space-between;
-}
-
-.top-block .other-player .babies-container .baby-item .icon-container{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5em;
 }
 
 .top-block .other-player .babies-container .baby-item span{
     /* margin-left: 2.5px; */
     font-weight: bold;
     font-size: 1.25em;
-    display: block;
-    text-align: center;
-
-    line-height: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
-.babies-container .baby-item img{
+.top-block .other-player .babies-container .baby-item img{
     border-radius: 3px;
-    box-sizing: border-box;
+    opacity: .5;
 
-    height: auto;
-    margin: auto;
-}
-
-.top-block .other-player .ohter-player-info{
-    display: flex;
-    align-items: center;
-    justify-content: center;
     height: 100%;
+    margin: auto;
 }
 
 .top-block .other-player .king-container{
@@ -852,8 +829,6 @@ img{
     grid-template-columns: 52.5% 40%;
     align-items: center;
     justify-content: space-between;
-
-    height: 80%;
 }
 
 .top-block .other-player .king-container .king-img{
@@ -863,22 +838,11 @@ img{
     border-radius: 50%;
 }
 
-.top-block .other-player .king-container .king-food-container{
-    display: grid;
-    align-content: space-between;
-
-    height: 100%;
-}
-
-.top-block .other-player .king-container .king-food-container div{
-    display: flex;
-}
-
 /* ---------------------------------------------------------------- */
 
 #gameArea .top-block .public-area{
     display: grid;
-    grid-template-rows: 10% 47.5% 38%;
+    grid-template-rows: 10% 45% 40%;
     align-content: space-between;
 
     position: relative;
@@ -962,8 +926,6 @@ img{
     align-items: flex-end;
     justify-content: center;
     position: relative;
-
-    overflow: hidden;
 }
 
 #gameArea .top-block .public-area .draw-pile .gameCard{
@@ -993,15 +955,13 @@ img{
     pointer-events: none;
     
     z-index: 10;
-    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
-
 }
 
 /* ---------------------------------------------------------------- */
 .lower-block{
     position: relative;
     display: grid;
-    grid-template-rows: calc(40% - 5px) calc(60% - 5px);
+    grid-template-rows: 40% 55%;
     overflow: hidden;
     padding: 10px;
 
@@ -1013,7 +973,7 @@ img{
 
 .lower-block .upper-part{
     display: grid;
-    grid-template-columns: 55% 40%;
+    grid-template-columns: 50% 45%;
     justify-content: space-between;
     overflow: hidden;
     align-items: center;
@@ -1023,7 +983,7 @@ img{
 .lower-block .upper-part h5{
     
     text-align: center;
-    margin: auto auto 7.5px;
+    margin: auto auto 15px;
 }
 
 .lower-block .upper-part .babies-container{
@@ -1033,24 +993,7 @@ img{
 
     /* height: 100%; */
     text-align: center;
-    font-size: .8em;
-    font-weight: bold;
-}
-
-.babies-container .baby-item{
-    position: relative;
-}
-
-.babies-container .baby-item i {
-    position: absolute;
-    top: 35%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-
-    color: crimson;
-    font-size: 1.35em;
-
-    z-index: 5;
+    font-size: .9em;
 }
 
 .lower-block .upper-part .player-info{
@@ -1108,23 +1051,6 @@ img{
     position: absolute !important;
 }
 
-@keyframes brightness-animation {
-    0% {
-        filter: brightness(1);
-    }
-    50% {
-        filter: brightness(1.5);
-    }
-    100% {
-        filter: brightness(1);
-    }
-}
-
-.brightness-effect {
-    animation: brightness-animation 1.5s infinite;
-}
-
-
 /* ---------------------------------------------------------------- */
 
 .drawing-card-container{
@@ -1147,75 +1073,4 @@ img{
 .movingCard{
     position: fixed;
     transition: all .3s ease-in-out;
-    z-index: 25;
 }
-
-/* ---------------------------------------------------------------- */
-#drawPileBase .dice-container{
-    display: block;
-    pointer-events: none;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    position: absolute;
-
-    z-index: 30;
-
-    opacity: 0;
-
-    transition: all .5s ease-in-out;
-    border-radius: 8%;
-}
-#drawPileBase .dice {
-    position: relative;
-    /* width: 100px;
-    height: 100px; */
-    width: var(--dice-width);
-    height: var(--dice-width);
-
-
-    transform-style: preserve-3d;
-    transition: transform 3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-    transition: transform 3s ease-in-out;
-
-    
-    z-index: 40;
-
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-
-}
-
-#drawPileBase .dot {
-    position: absolute;
-    width: 45%;
-    height: 45%;
-    border-radius: 50%;
-
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-#drawPileBase .side {
-    position: absolute;
-    /* width: 100px;
-    height: 100px; */
-    width: 100%;
-    height: 100%;
-    background-color: #fff;
-    border-radius: 5px;
-    border: 1px solid #e5e5e5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-#drawPileBase .side:nth-child(1) { transform: translateZ(calc(var(--dice-width) /2)); }
-#drawPileBase .side:nth-child(2) { transform: rotateY(90deg) translateZ(calc(var(--dice-width) /2)); }
-#drawPileBase .side:nth-child(3) { transform: rotateY(-90deg) translateZ(calc(var(--dice-width) /2)); }
-#drawPileBase .side:nth-child(4) { transform: rotateX(90deg) translateZ(calc(var(--dice-width) /2)); }
-#drawPileBase .side:nth-child(5) { transform: rotateX(-90deg) translateZ(calc(var(--dice-width) /2)); }
-#drawPileBase .side:nth-child(6) { transform: rotateY(180deg) translateZ(calc(var(--dice-width) /2)); }

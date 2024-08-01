@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue 3 3D Dice</title>
+  <style>
+    .dice-container {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+  <script type="module">
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const diceContainer = ref(null);
+
+        onMounted(() => {
+          // Initialize the Scene
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+          const renderer = new THREE.WebGLRenderer({ antialias: true });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.shadowMap.enabled = true;
+          diceContainer.value.appendChild(renderer.domElement);
+          camera.position.set(5, 5, 5); // Position the camera at 45 degrees
+          camera.lookAt(0, 0, 0);
+
+          // Define colors for each face of the dice
+          const colors = ['#DC143C', '#0047AB', '#228B22', '#FFD700', '#1C1C1C', '#FFFFFF'];
+          const colorNames = ['Crimson', 'Blue', 'Green', 'Gold', 'Black', 'White'];
+
+          // Create materials for each face of the dice
+          const materials = colors.map(color => new THREE.MeshStandardMaterial({ color }));
+
+          // Add a Dice with different colors for each face
+          const geometry = new THREE.BoxGeometry(1, 1, 1);
+          const dice = new THREE.Mesh(geometry, materials);
+          dice.castShadow = true;
+          dice.receiveShadow = true;
+          scene.add(dice);
+
+          // Initialize Cannon.js world
+          const world = new CANNON.World();
+          world.gravity.set(0, -9.82, 0);
+
+          // Create a physical dice body
+          const diceShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+          const diceBody = new CANNON.Body({
+            mass: 1,
+            shape: diceShape,
+            position: new CANNON.Vec3(0, 2, 0),
+          });
+          world.addBody(diceBody);
+
+          // Ground plane
+          const groundShape = new CANNON.Box(new CANNON.Vec3(5, 1, 5));
+          const groundBody = new CANNON.Body({
+            mass: 0,
+            shape: groundShape,
+            position: new CANNON.Vec3(0, -1, 0),
+          });
+          world.addBody(groundBody);
+
+          // Add walls and ceiling to contain the dice
+          const createWall = (width, height, depth, position) => {
+            const wallShape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+            const wallBody = new CANNON.Body({
+              mass: 0,
+              shape: wallShape,
+              position: new CANNON.Vec3(...position),
+            });
+            world.addBody(wallBody);
+
+            // Create Three.js mesh for the wall
+            const wallGeometry = new THREE.BoxGeometry(width, height, depth);
+            const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 });
+            const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+            wallMesh.position.copy(wallBody.position);
+            scene.add(wallMesh);
+          };
+
+          // Create higher walls and a ceiling around the dice
+          createWall(10, 10, 1, [0, 5, 5]);   // Front wall
+          createWall(10, 10, 1, [0, 5, -5]);  // Back wall
+          createWall(1, 10, 10, [5, 5, 0]);   // Right wall
+          createWall(1, 10, 10, [-5, 5, 0]);  // Left wall
+          createWall(10, 1, 10, [0, 10, 0]);  // Ceiling
+
+          // Add light
+          const light = new THREE.DirectionalLight(0xffffff, 1);
+          light.position.set(5, 5, 5);
+          light.castShadow = true;
+          light.shadow.mapSize.width = 2048;
+          light.shadow.mapSize.height = 2048;
+          light.shadow.camera.near = 0.5;
+          light.shadow.camera.far = 50;
+          scene.add(light);
+
+          // Add ambient light to soften shadows
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+          scene.add(ambientLight);
+
+          // Sync dice position with physics simulation
+          function updatePhysics() {
+            world.step(1 / 60);
+            dice.position.copy(diceBody.position);
+            dice.quaternion.copy(diceBody.quaternion);
+          }
+
+          // Animate the scene
+          function animate() {
+            requestAnimationFrame(animate);
+            updatePhysics();
+            renderer.render(scene, camera);
+          }
+          animate();
+
+          // Roll the dice
+          const rollDice = () => {
+            diceBody.velocity.set(
+              Math.random() * 30 - 15,
+              Math.random() * 30 - 15,
+              Math.random() * 30 - 15
+            );
+            diceBody.angularVelocity.set(
+              Math.random() * 30 - 15,
+              Math.random() * 30 - 15,
+              Math.random() * 30 - 15
+            );
+
+            // Check the dice face after 2 seconds
+            setTimeout(() => {
+              const up = getDiceFaceUp(diceBody.quaternion);
+              console.log('Face Up:', up);
+            }, 2000);
+          };
+
+          // Get the dice face facing up
+          const getDiceFaceUp = (quaternion) => {
+            const faces = [
+              new CANNON.Vec3(0, 1, 0), // up
+              new CANNON.Vec3(0, -1, 0), // down
+              new CANNON.Vec3(1, 0, 0), // right
+              new CANNON.Vec3(-1, 0, 0), // left
+              new CANNON.Vec3(0, 0, 1), // front
+              new CANNON.Vec3(0, 0, -1), // back
+            ];
+
+            let maxDot = -Infinity;
+            let faceIndex = -1;
+
+            for (let i = 0; i < faces.length; i++) {
+              const worldFace = new CANNON.Vec3();
+              quaternion.vmult(faces[i], worldFace);
+              const dot = worldFace.dot(new CANNON.Vec3(0, 1, 0));
+
+              if (dot > maxDot) {
+                maxDot = dot;
+                faceIndex = i;
+              }
+            }
+
+            return colorNames[faceIndex];
+          };
+
+          // Add event listener for rollDice
+          document.getElementById('roll-button').addEventListener('click', rollDice);
+        });
+
+        return {
+          diceContainer,
+        };
+      },
+      template: `
+        <div ref="diceContainer" class="dice-container"></div>
+        <button id="roll-button">Roll Dice</button>
+      `,
+    }).mount('#app');
+  </script>
+</body>
+</html>
