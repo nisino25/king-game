@@ -650,7 +650,7 @@ const app = Vue.createApp({
         async trashCard(card,notSkipping,activeCard){
 
             const tempCard = card ?? this.pickedCard;
-            tempCard.location = 'moving'
+            tempCard.location = 'moving' 
             
             this.movingCard.hasDestination = false
 
